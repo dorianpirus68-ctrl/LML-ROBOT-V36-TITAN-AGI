@@ -232,53 +232,84 @@ jobs:
           }
           EOF
 
+          # C'EST ICI LA CORRECTION PRINCIPALE !
           cat > app/src/main/java/com/lml/robotai/LmlAccessibilityService.java << 'EOF'
           package com.lml.robotai;
           import android.accessibilityservice.AccessibilityService;
+          import android.accessibilityservice.GestureDescription;
+          import android.graphics.Path;
+          import android.graphics.Rect;
           import android.view.accessibility.AccessibilityEvent;
+          import android.view.accessibility.AccessibilityNodeInfo;
           import java.util.ArrayList;
           import java.util.List;
 
           public class LmlAccessibilityService extends AccessibilityService {
               public static LmlAccessibilityService INSTANCE;
               public static boolean isAutoClickEnabled = false;
+              private long lastClickTime = 0;
               
               @Override protected void onServiceConnected() { 
                   super.onServiceConnected(); 
                   INSTANCE = this;
               }
 
-              // CLIC AUTOMATIQUE : Déclenché dès que l'écran change
               @Override 
               public void onAccessibilityEvent(AccessibilityEvent event) {
+                  // Si le mode Sniper est éteint, on ne fait rien
                   if (!isAutoClickEnabled) return;
+                  
+                  // Anti-spam: on attend au moins 500ms entre chaque clic pour éviter les bugs
+                  if (System.currentTimeMillis() - lastClickTime < 500) return;
 
-                  // On scanne l'écran en continu
-                  List<ScreenNode> nodes = scan();
-                  ScreenNode confirmNode = null;
+                  // On récupère tout ce qui est affiché à l'écran
+                  AccessibilityNodeInfo rootNode = getRootInActiveWindow();
+                  if (rootNode == null) return;
+
+                  List<ScreenNode> nodes = new ArrayList<>();
+                  traverseNode(rootNode, nodes);
 
                   for (ScreenNode n : nodes) {
                       String label = n.label().toLowerCase().trim();
                       
-                      // On cible précisément le bouton gris "supprimer"
+                      // Si on trouve EXACTEMENT le mot "supprimer", on clique dessus !
                       if (label.equals("supprimer")) {
-                          confirmNode = n;
-                          break;
-                      } else if (label.contains("supprimer") && !label.contains("voulez")) {
-                          confirmNode = n;
+                          tap(n.cx(), n.cy());
+                          lastClickTime = System.currentTimeMillis();
+                          break; // On arrête de chercher après avoir cliqué
                       }
                   }
+                  
+                  // On libère la mémoire
+                  rootNode.recycle();
+              }
+              
+              // Cette méthode "lit" tout l'écran
+              private void traverseNode(AccessibilityNodeInfo node, List<ScreenNode> list) {
+                  if (node == null) return;
 
-                  // Si le bouton gris est détecté, on clique dessus TOUT SEUL instantanément !
-                  if (confirmNode != null) {
-                      tap(confirmNode.cx(), confirmNode.cy());
+                  if (node.getText() != null) {
+                      Rect bounds = new Rect();
+                      node.getBoundsInScreen(bounds);
+                      list.add(new ScreenNode(node.getText().toString(), bounds.left, bounds.top, bounds.width(), bounds.height()));
+                  }
+
+                  for (int i = 0; i < node.getChildCount(); i++) {
+                      traverseNode(node.getChild(i), list);
                   }
               }
               
+              // Cette méthode simule un VRAI clic tactile sur l'écran
+              public void tap(int x, int y) {
+                  Path path = new Path();
+                  path.moveTo(x, y);
+                  GestureDescription.Builder builder = new GestureDescription.Builder();
+                  // Clic de 50 millisecondes (très rapide)
+                  builder.addStroke(new GestureDescription.StrokeDescription(path, 10, 50));
+                  dispatchGesture(builder.build(), null, null);
+              }
+
               @Override public void onInterrupt() {}
-              
-              public void tap(int x, int y) { /* Implémentation du tap */ }
-              public List<ScreenNode> scan() { return new ArrayList<>(); /* Implémentation du scan */ }
           }
           EOF
 
@@ -313,7 +344,6 @@ jobs:
                   floatingView = LayoutInflater.from(this).inflate(android.R.layout.simple_list_item_1, null);
                   robotTextView = floatingView.findViewById(android.R.id.text1);
                   
-                  // État initial : Désactivé (Rouge)
                   robotTextView.setText("🎯 LML OFF"); 
                   robotTextView.setTextSize(16); 
                   robotTextView.setTextColor(Color.RED);
@@ -349,16 +379,15 @@ jobs:
                                   float diffX = Math.abs(event.getRawX() - initialTouchX);
                                   float diffY = Math.abs(event.getRawY() - initialTouchY);
                                   
-                                  // Un clic court sur l'icône active ou désactive le Sniper automatique !
                                   if (touchDuration < 200 && diffX < 10 && diffY < 10) {
                                       LmlAccessibilityService.isAutoClickEnabled = !LmlAccessibilityService.isAutoClickEnabled;
                                       
                                       if (LmlAccessibilityService.isAutoClickEnabled) {
                                           robotTextView.setText("🎯 SNIPER ON");
-                                          robotTextView.setTextColor(Color.GREEN); // Vert = Mode Auto activé
+                                          robotTextView.setTextColor(Color.GREEN);
                                       } else {
                                           robotTextView.setText("🎯 LML OFF");
-                                          robotTextView.setTextColor(Color.RED); // Rouge = Mode Manuel / Éteint
+                                          robotTextView.setTextColor(Color.RED);
                                       }
                                   }
                                   return true;
