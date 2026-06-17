@@ -232,7 +232,6 @@ jobs:
           }
           EOF
 
-          # C'EST ICI LA CORRECTION PRINCIPALE !
           cat > app/src/main/java/com/lml/robotai/LmlAccessibilityService.java << 'EOF'
           package com.lml.robotai;
           import android.accessibilityservice.AccessibilityService;
@@ -241,7 +240,6 @@ jobs:
           import android.graphics.Rect;
           import android.view.accessibility.AccessibilityEvent;
           import android.view.accessibility.AccessibilityNodeInfo;
-          import java.util.ArrayList;
           import java.util.List;
 
           public class LmlAccessibilityService extends AccessibilityService {
@@ -256,55 +254,59 @@ jobs:
 
               @Override 
               public void onAccessibilityEvent(AccessibilityEvent event) {
-                  // Si le mode Sniper est éteint, on ne fait rien
                   if (!isAutoClickEnabled) return;
                   
-                  // Anti-spam: on attend au moins 500ms entre chaque clic pour éviter les bugs
-                  if (System.currentTimeMillis() - lastClickTime < 500) return;
+                  // Anti-spam: pause de 1 seconde entre chaque clic pour être sûr
+                  if (System.currentTimeMillis() - lastClickTime < 1000) return;
 
-                  // On récupère tout ce qui est affiché à l'écran
                   AccessibilityNodeInfo rootNode = getRootInActiveWindow();
                   if (rootNode == null) return;
 
-                  List<ScreenNode> nodes = new ArrayList<>();
-                  traverseNode(rootNode, nodes);
-
-                  for (ScreenNode n : nodes) {
-                      String label = n.label().toLowerCase().trim();
+                  // 1. Android cherche directement tous les textes "supprimer"
+                  List<AccessibilityNodeInfo> nodes = rootNode.findAccessibilityNodeInfosByText("supprimer");
+                  
+                  for (AccessibilityNodeInfo node : nodes) {
+                      if (node.getText() == null) continue;
                       
-                      // Si on trouve EXACTEMENT le mot "supprimer", on clique dessus !
-                      if (label.equals("supprimer")) {
-                          tap(n.cx(), n.cy());
+                      String text = node.getText().toString().toLowerCase().trim();
+                      
+                      // 2. Vérification stricte pour isoler le bouton gris
+                      if (text.equals("supprimer")) {
+                          
+                          boolean clicked = false;
+                          AccessibilityNodeInfo clickableNode = node;
+                          
+                          // 3. CLIC NATIF : On remonte l'arbre pour trouver l'élément cliquable
+                          while (clickableNode != null) {
+                              if (clickableNode.isClickable()) {
+                                  // Déclenche l'action officielle d'Android !
+                                  clickableNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                                  clicked = true;
+                                  break;
+                              }
+                              clickableNode = clickableNode.getParent();
+                          }
+                          
+                          // 4. PLAN B : Si le clic natif échoue, on force les coordonnées
+                          if (!clicked) {
+                              Rect bounds = new Rect();
+                              node.getBoundsInScreen(bounds);
+                              tap(bounds.centerX(), bounds.centerY());
+                          }
+                          
                           lastClickTime = System.currentTimeMillis();
-                          break; // On arrête de chercher après avoir cliqué
+                          break; // Mission accomplie, on arrête de chercher
                       }
                   }
                   
-                  // On libère la mémoire
-                  rootNode.recycle();
+                  rootNode.recycle(); // Libère la mémoire
               }
               
-              // Cette méthode "lit" tout l'écran
-              private void traverseNode(AccessibilityNodeInfo node, List<ScreenNode> list) {
-                  if (node == null) return;
-
-                  if (node.getText() != null) {
-                      Rect bounds = new Rect();
-                      node.getBoundsInScreen(bounds);
-                      list.add(new ScreenNode(node.getText().toString(), bounds.left, bounds.top, bounds.width(), bounds.height()));
-                  }
-
-                  for (int i = 0; i < node.getChildCount(); i++) {
-                      traverseNode(node.getChild(i), list);
-                  }
-              }
-              
-              // Cette méthode simule un VRAI clic tactile sur l'écran
+              // Méthode de secours (Plan B)
               public void tap(int x, int y) {
                   Path path = new Path();
                   path.moveTo(x, y);
                   GestureDescription.Builder builder = new GestureDescription.Builder();
-                  // Clic de 50 millisecondes (très rapide)
                   builder.addStroke(new GestureDescription.StrokeDescription(path, 10, 50));
                   dispatchGesture(builder.build(), null, null);
               }
@@ -462,3 +464,4 @@ jobs:
           name: LML-Sniper-APK
           path: app/build/outputs/apk/**/*.apk
           retention-days: 30
+
