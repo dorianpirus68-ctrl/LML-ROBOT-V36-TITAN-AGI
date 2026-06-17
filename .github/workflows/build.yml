@@ -84,7 +84,6 @@ jobs:
           android.enableJetifier=true
           EOF
 
-          # Application des corrections de signature
           cat > app/build.gradle << 'EOF'
           plugins {
               id 'com.android.application'
@@ -250,7 +249,6 @@ jobs:
                   INSTANCE = this;
               }
               
-              // Méthodes de simulation requises par FloatingRobotService
               public void tap(int x, int y) { /* Implémentation du tap */ }
               public void longPress(int x, int y) { /* Implémentation de l'appui long */ }
               public List<ScreenNode> scan() { return new ArrayList<>(); /* Implémentation du scan */ }
@@ -279,9 +277,8 @@ jobs:
               private View floatingView;
               private Handler mainHandler = new Handler(Looper.getMainLooper());
               private List<ScreenNode> pendingSnapDeletes = new ArrayList<>();
-              private View panel; // Représentation du panneau d'interface
+              private View panel; 
 
-              // Classe factice pour la compilation, à adapter selon ta vraie logique
               static class SafetyGuard { static boolean bypassForSafeMode = false; }
               
               @Override public IBinder onBind(Intent intent) { return null; }
@@ -292,10 +289,9 @@ jobs:
               }
 
               private void log(String message) {
-                  // Implémentation de ton système de log
+                  // Stub pour les logs
               }
 
-              // Voici la séquence corrigée avec le "clic grisé"
               private void executeSnapCleanSequence(int index) {
                   if (index >= pendingSnapDeletes.size()) { 
                       log("<font color='#00FFFF'>[SYS] Nettoyage terminé.</font>"); 
@@ -305,36 +301,62 @@ jobs:
                   }
                   
                   ScreenNode target = pendingSnapDeletes.get(index);
-                  if (LmlAccessibilityService.INSTANCE != null) {
-                      LmlAccessibilityService.INSTANCE.longPress(target.cx(), target.cy());
-                  }
+                  if (LmlAccessibilityService.INSTANCE == null) return;
                   
+                  // Étape 1 : Appui long
+                  log("Cible: " + target.label());
+                  LmlAccessibilityService.INSTANCE.longPress(target.cx(), target.cy());
+                  
+                  // Étape 2 : Clic sur Gérer l'amitié
                   mainHandler.postDelayed(() -> {
-                      if (LmlAccessibilityService.INSTANCE == null) return;
-                      List<ScreenNode> nodes = LmlAccessibilityService.INSTANCE.scan();
-                      ScreenNode confirmNode = null;
-
-                      // CIBLE CORRIGÉE : On cherche le texte "supprimer", on ignore l'état cliquable
-                      for (ScreenNode n : nodes) {
-                          String label = n.label().toLowerCase();
-                          if (label.contains("supprimer") && !label.contains("voulez")) {
-                              confirmNode = n;
-                              break;
-                          }
-                      }
-
-                      if (confirmNode != null) {
-                          log("<font color='#4080FF'>Clic forcé sur : " + confirmNode.label() + "</font>");
-                          LmlAccessibilityService.INSTANCE.tap(confirmNode.cx(), confirmNode.cy());
-                      } else {
-                          log("<font color='#FF3333'>Bouton non détecté, fallback zone centrale.</font>");
-                          int sw = getResources().getDisplayMetrics().widthPixels;
-                          int sh = getResources().getDisplayMetrics().heightPixels;
-                          LmlAccessibilityService.INSTANCE.tap(sw / 2, (int)(sh * 0.55));
-                      }
+                      clickNodeContaining("gérer l'amitié");
                       
-                      mainHandler.postDelayed(() -> executeSnapCleanSequence(index + 1), 3000);
-                  }, 2500);
+                      // Étape 3 : Clic sur Supprimer cet-te ami-e
+                      mainHandler.postDelayed(() -> {
+                          clickNodeContaining("supprimer cet");
+                          
+                          // Étape 4 : Clic sur le bouton gris final
+                          mainHandler.postDelayed(() -> {
+                              List<ScreenNode> nodes = LmlAccessibilityService.INSTANCE.scan();
+                              ScreenNode confirmNode = null;
+
+                              for (ScreenNode n : nodes) {
+                                  String label = n.label().toLowerCase().trim();
+                                  if (label.equals("supprimer")) {
+                                      confirmNode = n;
+                                      break;
+                                  } else if (label.contains("supprimer") && !label.contains("voulez")) {
+                                      confirmNode = n;
+                                  }
+                              }
+
+                              if (confirmNode != null) {
+                                  log("<font color='#4080FF'>Clic validé sur : " + confirmNode.label() + "</font>");
+                                  LmlAccessibilityService.INSTANCE.tap(confirmNode.cx(), confirmNode.cy());
+                              } else {
+                                  log("<font color='#FF3333'>Bouton gris final non trouvé.</font>");
+                                  int sw = getResources().getDisplayMetrics().widthPixels;
+                                  int sh = getResources().getDisplayMetrics().heightPixels;
+                                  LmlAccessibilityService.INSTANCE.tap(sw / 2, (int)(sh * 0.55));
+                              }
+                              
+                              mainHandler.postDelayed(() -> executeSnapCleanSequence(index + 1), 2500);
+                              
+                          }, 1500);
+                      }, 1500);
+                  }, 1500);
+              }
+
+              private boolean clickNodeContaining(String textToFind) {
+                  if (LmlAccessibilityService.INSTANCE == null) return false;
+                  List<ScreenNode> nodes = LmlAccessibilityService.INSTANCE.scan();
+                  for (ScreenNode n : nodes) {
+                      if (n.label().toLowerCase().contains(textToFind.toLowerCase())) {
+                          LmlAccessibilityService.INSTANCE.tap(n.cx(), n.cy());
+                          return true;
+                      }
+                  }
+                  return false;
               }
 
               private void showFloatingRobot() {
