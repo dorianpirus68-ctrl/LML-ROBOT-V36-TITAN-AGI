@@ -269,18 +269,12 @@ jobs:
           import android.view.View;
           import android.view.WindowManager;
           import android.widget.TextView;
-          import java.util.ArrayList;
           import java.util.List;
 
           public class FloatingRobotService extends Service {
               private WindowManager windowManager; 
               private View floatingView;
-              private Handler mainHandler = new Handler(Looper.getMainLooper());
-              private List<ScreenNode> pendingSnapDeletes = new ArrayList<>();
-              private View panel; 
 
-              static class SafetyGuard { static boolean bypassForSafeMode = false; }
-              
               @Override public IBinder onBind(Intent intent) { return null; }
               
               @Override public int onStartCommand(Intent intent, int flags, int startId) {
@@ -288,75 +282,27 @@ jobs:
                   return START_STICKY;
               }
 
-              private void log(String message) {
-                  // Stub pour les logs
-              }
-
-              private void executeSnapCleanSequence(int index) {
-                  if (index >= pendingSnapDeletes.size()) { 
-                      log("<font color='#00FFFF'>[SYS] Nettoyage terminé.</font>"); 
-                      SafetyGuard.bypassForSafeMode = false;
-                      if (panel != null) panel.setVisibility(View.VISIBLE);
-                      return; 
-                  }
-                  
-                  ScreenNode target = pendingSnapDeletes.get(index);
+              // MÉTHODE SIMPLIFIÉE : Clique uniquement sur le dernier bouton gris
+              private void clickFinalDeleteButton() {
                   if (LmlAccessibilityService.INSTANCE == null) return;
                   
-                  // Étape 1 : Appui long
-                  log("Cible: " + target.label());
-                  LmlAccessibilityService.INSTANCE.longPress(target.cx(), target.cy());
-                  
-                  // Étape 2 : Clic sur Gérer l'amitié
-                  mainHandler.postDelayed(() -> {
-                      clickNodeContaining("gérer l'amitié");
-                      
-                      // Étape 3 : Clic sur Supprimer cet-te ami-e
-                      mainHandler.postDelayed(() -> {
-                          clickNodeContaining("supprimer cet");
-                          
-                          // Étape 4 : Clic sur le bouton gris final
-                          mainHandler.postDelayed(() -> {
-                              List<ScreenNode> nodes = LmlAccessibilityService.INSTANCE.scan();
-                              ScreenNode confirmNode = null;
-
-                              for (ScreenNode n : nodes) {
-                                  String label = n.label().toLowerCase().trim();
-                                  if (label.equals("supprimer")) {
-                                      confirmNode = n;
-                                      break;
-                                  } else if (label.contains("supprimer") && !label.contains("voulez")) {
-                                      confirmNode = n;
-                                  }
-                              }
-
-                              if (confirmNode != null) {
-                                  log("<font color='#4080FF'>Clic validé sur : " + confirmNode.label() + "</font>");
-                                  LmlAccessibilityService.INSTANCE.tap(confirmNode.cx(), confirmNode.cy());
-                              } else {
-                                  log("<font color='#FF3333'>Bouton gris final non trouvé.</font>");
-                                  int sw = getResources().getDisplayMetrics().widthPixels;
-                                  int sh = getResources().getDisplayMetrics().heightPixels;
-                                  LmlAccessibilityService.INSTANCE.tap(sw / 2, (int)(sh * 0.55));
-                              }
-                              
-                              mainHandler.postDelayed(() -> executeSnapCleanSequence(index + 1), 2500);
-                              
-                          }, 1500);
-                      }, 1500);
-                  }, 1500);
-              }
-
-              private boolean clickNodeContaining(String textToFind) {
-                  if (LmlAccessibilityService.INSTANCE == null) return false;
                   List<ScreenNode> nodes = LmlAccessibilityService.INSTANCE.scan();
+                  ScreenNode confirmNode = null;
+
                   for (ScreenNode n : nodes) {
-                      if (n.label().toLowerCase().contains(textToFind.toLowerCase())) {
-                          LmlAccessibilityService.INSTANCE.tap(n.cx(), n.cy());
-                          return true;
+                      String label = n.label().toLowerCase().trim();
+                      // On cherche EXACTEMENT le mot "supprimer"
+                      if (label.equals("supprimer")) {
+                          confirmNode = n;
+                          break;
+                      } else if (label.contains("supprimer") && !label.contains("voulez")) {
+                          confirmNode = n;
                       }
                   }
-                  return false;
+
+                  if (confirmNode != null) {
+                      LmlAccessibilityService.INSTANCE.tap(confirmNode.cx(), confirmNode.cy());
+                  }
               }
 
               private void showFloatingRobot() {
@@ -364,6 +310,7 @@ jobs:
                   floatingView = LayoutInflater.from(this).inflate(android.R.layout.simple_list_item_1, null);
                   TextView tv = floatingView.findViewById(android.R.id.text1);
                   tv.setText("🎯 LML"); tv.setTextSize(18); tv.setGravity(Gravity.CENTER);
+                  
                   WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                       WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
                       WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
@@ -371,17 +318,36 @@ jobs:
                   params.gravity = Gravity.TOP | Gravity.START; params.x = 100; params.y = 300;
                   
                   floatingView.setOnTouchListener(new View.OnTouchListener() {
-                      private int initialX, initialY; private float initialTouchX, initialTouchY;
+                      private int initialX, initialY; 
+                      private float initialTouchX, initialTouchY;
+                      private long touchStartTime;
+                      
                       @Override public boolean onTouch(View v, MotionEvent event) {
                           switch (event.getAction()) {
                               case MotionEvent.ACTION_DOWN:
                                   initialX = params.x; initialY = params.y;
-                                  initialTouchX = event.getRawX(); initialTouchY = event.getRawY(); return true;
+                                  initialTouchX = event.getRawX(); initialTouchY = event.getRawY();
+                                  touchStartTime = System.currentTimeMillis();
+                                  return true;
+                                  
                               case MotionEvent.ACTION_MOVE:
                                   params.x = initialX + (int)(event.getRawX() - initialTouchX);
                                   params.y = initialY + (int)(event.getRawY() - initialTouchY);
-                                  windowManager.updateViewLayout(floatingView, params); return true;
-                          } return false;
+                                  windowManager.updateViewLayout(floatingView, params); 
+                                  return true;
+                                  
+                              case MotionEvent.ACTION_UP:
+                                  long touchDuration = System.currentTimeMillis() - touchStartTime;
+                                  float diffX = Math.abs(event.getRawX() - initialTouchX);
+                                  float diffY = Math.abs(event.getRawY() - initialTouchY);
+                                  
+                                  // Si on touche l'icône rapidement sans la déplacer, ça déclenche le clic !
+                                  if (touchDuration < 200 && diffX < 10 && diffY < 10) {
+                                      clickFinalDeleteButton();
+                                  }
+                                  return true;
+                          } 
+                          return false;
                       }
                   });
                   windowManager.addView(floatingView, params);
