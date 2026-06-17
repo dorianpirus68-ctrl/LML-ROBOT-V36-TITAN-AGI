@@ -211,7 +211,7 @@ jobs:
           cat > app/src/main/res/xml/accessibility_service_config.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-              android:accessibilityEventTypes="typeAllMask"
+              android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
               android:accessibilityFeedbackType="feedbackGeneric"
               android:canRetrieveWindowContent="true"
               android:canPerformGestures="true"
@@ -241,57 +241,26 @@ jobs:
 
           public class LmlAccessibilityService extends AccessibilityService {
               public static LmlAccessibilityService INSTANCE;
+              public static boolean isAutoClickEnabled = false;
               
-              @Override public void onAccessibilityEvent(AccessibilityEvent event) {}
-              @Override public void onInterrupt() {}
               @Override protected void onServiceConnected() { 
                   super.onServiceConnected(); 
                   INSTANCE = this;
               }
-              
-              public void tap(int x, int y) { /* Implémentation du tap */ }
-              public void longPress(int x, int y) { /* Implémentation de l'appui long */ }
-              public List<ScreenNode> scan() { return new ArrayList<>(); /* Implémentation du scan */ }
-          }
-          EOF
 
-          cat > app/src/main/java/com/lml/robotai/FloatingRobotService.java << 'EOF'
-          package com.lml.robotai;
-          import android.app.Service;
-          import android.content.Intent;
-          import android.graphics.PixelFormat;
-          import android.os.Handler;
-          import android.os.IBinder;
-          import android.os.Looper;
-          import android.view.Gravity;
-          import android.view.LayoutInflater;
-          import android.view.MotionEvent;
-          import android.view.View;
-          import android.view.WindowManager;
-          import android.widget.TextView;
-          import java.util.List;
+              // CLIC AUTOMATIQUE : Déclenché dès que l'écran change
+              @Override 
+              public void onAccessibilityEvent(AccessibilityEvent event) {
+                  if (!isAutoClickEnabled) return;
 
-          public class FloatingRobotService extends Service {
-              private WindowManager windowManager; 
-              private View floatingView;
-
-              @Override public IBinder onBind(Intent intent) { return null; }
-              
-              @Override public int onStartCommand(Intent intent, int flags, int startId) {
-                  showFloatingRobot(); 
-                  return START_STICKY;
-              }
-
-              // MÉTHODE SIMPLIFIÉE : Clique uniquement sur le dernier bouton gris
-              private void clickFinalDeleteButton() {
-                  if (LmlAccessibilityService.INSTANCE == null) return;
-                  
-                  List<ScreenNode> nodes = LmlAccessibilityService.INSTANCE.scan();
+                  // On scanne l'écran en continu
+                  List<ScreenNode> nodes = scan();
                   ScreenNode confirmNode = null;
 
                   for (ScreenNode n : nodes) {
                       String label = n.label().toLowerCase().trim();
-                      // On cherche EXACTEMENT le mot "supprimer"
+                      
+                      // On cible précisément le bouton gris "supprimer"
                       if (label.equals("supprimer")) {
                           confirmNode = n;
                           break;
@@ -300,16 +269,55 @@ jobs:
                       }
                   }
 
+                  // Si le bouton gris est détecté, on clique dessus TOUT SEUL instantanément !
                   if (confirmNode != null) {
-                      LmlAccessibilityService.INSTANCE.tap(confirmNode.cx(), confirmNode.cy());
+                      tap(confirmNode.cx(), confirmNode.cy());
                   }
+              }
+              
+              @Override public void onInterrupt() {}
+              
+              public void tap(int x, int y) { /* Implémentation du tap */ }
+              public List<ScreenNode> scan() { return new ArrayList<>(); /* Implémentation du scan */ }
+          }
+          EOF
+
+          cat > app/src/main/java/com/lml/robotai/FloatingRobotService.java << 'EOF'
+          package com.lml.robotai;
+          import android.app.Service;
+          import android.content.Intent;
+          import android.graphics.Color;
+          import android.graphics.PixelFormat;
+          import android.os.IBinder;
+          import android.view.Gravity;
+          import android.view.LayoutInflater;
+          import android.view.MotionEvent;
+          import android.view.View;
+          import android.view.WindowManager;
+          import android.widget.TextView;
+
+          public class FloatingRobotService extends Service {
+              private WindowManager windowManager; 
+              private View floatingView;
+              private TextView robotTextView;
+
+              @Override public IBinder onBind(Intent intent) { return null; }
+              
+              @Override public int onStartCommand(Intent intent, int flags, int startId) {
+                  showFloatingRobot(); 
+                  return START_STICKY;
               }
 
               private void showFloatingRobot() {
                   windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
                   floatingView = LayoutInflater.from(this).inflate(android.R.layout.simple_list_item_1, null);
-                  TextView tv = floatingView.findViewById(android.R.id.text1);
-                  tv.setText("🎯 LML"); tv.setTextSize(18); tv.setGravity(Gravity.CENTER);
+                  robotTextView = floatingView.findViewById(android.R.id.text1);
+                  
+                  // État initial : Désactivé (Rouge)
+                  robotTextView.setText("🎯 LML OFF"); 
+                  robotTextView.setTextSize(16); 
+                  robotTextView.setTextColor(Color.RED);
+                  robotTextView.setGravity(Gravity.CENTER);
                   
                   WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                       WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
@@ -341,9 +349,17 @@ jobs:
                                   float diffX = Math.abs(event.getRawX() - initialTouchX);
                                   float diffY = Math.abs(event.getRawY() - initialTouchY);
                                   
-                                  // Si on touche l'icône rapidement sans la déplacer, ça déclenche le clic !
+                                  // Un clic court sur l'icône active ou désactive le Sniper automatique !
                                   if (touchDuration < 200 && diffX < 10 && diffY < 10) {
-                                      clickFinalDeleteButton();
+                                      LmlAccessibilityService.isAutoClickEnabled = !LmlAccessibilityService.isAutoClickEnabled;
+                                      
+                                      if (LmlAccessibilityService.isAutoClickEnabled) {
+                                          robotTextView.setText("🎯 SNIPER ON");
+                                          robotTextView.setTextColor(Color.GREEN); // Vert = Mode Auto activé
+                                      } else {
+                                          robotTextView.setText("🎯 LML OFF");
+                                          robotTextView.setTextColor(Color.RED); // Rouge = Mode Manuel / Éteint
+                                      }
                                   }
                                   return true;
                           } 
