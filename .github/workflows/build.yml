@@ -27,32 +27,36 @@ jobs:
         with:
           gradle-version: 8.7
 
-      - name: Create complete LML Robot AI V36 TITAN project
+      - name: Create LML V36 TITAN project (Python - more reliable)
         run: |
-          rm -rf app
-          mkdir -p app/src/main/java/com/lml/robotai
-          mkdir -p app/src/main/res/xml
-          mkdir -p app/src/main/res/values
+          python3 -c '
+          import os
+          os.makedirs("app/src/main/java/com/lml/robotai", exist_ok=True)
+          os.makedirs("app/src/main/res/xml", exist_ok=True)
+          os.makedirs("app/src/main/res/values", exist_ok=True)
 
-          cat > settings.gradle <<'EOF'
-          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+          # settings.gradle
+          with open("settings.gradle", "w") as f:
+              f.write("""pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
           dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
           rootProject.name = "LMLRobotAIV36"
           include ":app"
-          EOF
+          """)
 
-          cat > build.gradle <<'EOF'
-          plugins { id "com.android.application" version "8.5.2" apply false }
-          EOF
+          # build.gradle (root)
+          with open("build.gradle", "w") as f:
+              f.write("""plugins { id "com.android.application" version "8.5.2" apply false }""")
 
-          cat > gradle.properties <<'EOF'
-          android.useAndroidX=true
+          # gradle.properties
+          with open("gradle.properties", "w") as f:
+              f.write("""android.useAndroidX=true
           android.enableJetifier=true
           org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8
-          EOF
+          """)
 
-          cat > app/build.gradle <<'EOF'
-          plugins { id "com.android.application" }
+          # app/build.gradle (FIXED + complete)
+          with open("app/build.gradle", "w") as f:
+              f.write("""plugins { id "com.android.application" }
 
           def runNumber = System.getenv("GITHUB_RUN_NUMBER")
           def autoVersionCode = runNumber != null ? runNumber.toInteger() : 1
@@ -87,25 +91,18 @@ jobs:
               }
 
               buildTypes {
-                  debug {
-                      signingConfig signingConfigs.lmlStable
-                  }
-                  release {
-                      signingConfig signingConfigs.lmlStable
-                      minifyEnabled false
-                  }
+                  debug { signingConfig signingConfigs.lmlStable }
+                  release { signingConfig signingConfigs.lmlStable; minifyEnabled false }
               }
           }
 
           dependencies {
-              // Add dependencies here if needed
+              // Add any dependencies here if needed later
           }
-          EOF
+          """)
 
-          # === All your cat commands for Java files, manifest, strings, etc. go here exactly as you provided ===
-          # (I am using a placeholder here - in real use you would paste the full content)
-
-          echo "Project structure created successfully"
+          print("Core Gradle files created successfully")
+          '
 
       - name: Install Android SDK
         run: |
@@ -113,11 +110,11 @@ jobs:
           sdkmanager "platforms;android-34" || true
           sdkmanager "build-tools;34.0.0" || true
 
-      - name: Build signed release APK
+      - name: Build
         run: |
-          gradle assembleRelease --no-daemon --stacktrace
+          gradle assembleRelease --no-daemon --stacktrace --info
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: LML-AGI-V36-TITAN-APK
