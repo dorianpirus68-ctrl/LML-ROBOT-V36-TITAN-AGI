@@ -52,7 +52,6 @@ jobs:
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/xml
 
-          # --- Fichiers de configuration Gradle ---
           cat > settings.gradle << 'EOF'
           pluginManagement {
               repositories {
@@ -133,7 +132,6 @@ jobs:
           }
           EOF
 
-          # --- Fichiers Ressources Android (XML) ---
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -212,102 +210,115 @@ jobs:
           <?xml version="1.0" encoding="utf-8"?>
           <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
               android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
+              android:accessibilityFlags="flagRetrieveInteractiveWindows"
               android:accessibilityFeedbackType="feedbackGeneric"
               android:canRetrieveWindowContent="true"
               android:canPerformGestures="true"
               android:notificationTimeout="50" />
           EOF
 
-          # --- Fichiers Source Java ---
-          cat > app/src/main/java/com/lml/robotai/ScreenNode.java << 'EOF'
-          package com.lml.robotai;
-          public class ScreenNode {
-              public String text; public int x, y, width, height;
-              public ScreenNode(String text, int x, int y, int width, int height) {
-                  this.text = text; this.x = x; this.y = y; this.width = width; this.height = height;
-              }
-              public int cx() { return x + width / 2; }
-              public int cy() { return y + height / 2; }
-              public String label() { return text != null ? text : ""; }
-          }
-          EOF
-
+          # --- LE CERVEAU DU ROBOT (Logique de ciblage parfaite) ---
           cat > app/src/main/java/com/lml/robotai/LmlAccessibilityService.java << 'EOF'
           package com.lml.robotai;
           import android.accessibilityservice.AccessibilityService;
           import android.accessibilityservice.GestureDescription;
           import android.graphics.Path;
           import android.graphics.Rect;
+          import android.os.Handler;
+          import android.os.Looper;
           import android.view.accessibility.AccessibilityEvent;
           import android.view.accessibility.AccessibilityNodeInfo;
+          import android.view.accessibility.AccessibilityWindowInfo;
+          import android.widget.Toast;
           import java.util.List;
 
           public class LmlAccessibilityService extends AccessibilityService {
               public static LmlAccessibilityService INSTANCE;
               public static boolean isAutoClickEnabled = false;
+              
               private long lastClickTime = 0;
+              private Handler handler = new Handler(Looper.getMainLooper());
+
+              // Le Radar tourne en permanence (4 fois par seconde)
+              private Runnable radarTask = new Runnable() {
+                  @Override
+                  public void run() {
+                      if (isAutoClickEnabled) {
+                          huntForDeleteButton();
+                      }
+                      handler.postDelayed(this, 250);
+                  }
+              };
               
               @Override protected void onServiceConnected() { 
                   super.onServiceConnected(); 
                   INSTANCE = this;
+                  handler.post(radarTask);
               }
 
               @Override 
-              public void onAccessibilityEvent(AccessibilityEvent event) {
-                  if (!isAutoClickEnabled) return;
-                  
-                  // Anti-spam: pause de 1 seconde entre chaque clic pour être sûr
-                  if (System.currentTimeMillis() - lastClickTime < 1000) return;
+              public void onAccessibilityEvent(AccessibilityEvent event) {}
 
-                  AccessibilityNodeInfo rootNode = getRootInActiveWindow();
-                  if (rootNode == null) return;
+              private void huntForDeleteButton() {
+                  // Anti-spam : On attend 2 secondes après avoir cliqué avant de re-scanner
+                  if (System.currentTimeMillis() - lastClickTime < 2000) return;
 
-                  // 1. Android cherche directement tous les textes "supprimer"
-                  List<AccessibilityNodeInfo> nodes = rootNode.findAccessibilityNodeInfosByText("supprimer");
-                  
-                  for (AccessibilityNodeInfo node : nodes) {
-                      if (node.getText() == null) continue;
+                  List<AccessibilityWindowInfo> windows = getWindows();
+                  if (windows == null) return;
+
+                  AccessibilityNodeInfo targetNode = null;
+
+                  for (AccessibilityWindowInfo window : windows) {
+                      AccessibilityNodeInfo root = window.getRoot();
+                      if (root == null) continue;
+
+                      // On cherche "supprimer" partout
+                      List<AccessibilityNodeInfo> nodes = root.findAccessibilityNodeInfosByText("supprimer");
                       
-                      String text = node.getText().toString().toLowerCase().trim();
+                      for (AccessibilityNodeInfo node : nodes) {
+                          if (node.getText() == null) continue;
+                          String text = node.getText().toString().toLowerCase().trim();
+                          
+                          // LE SECRET EST ICI : 
+                          // Le texte doit contenir "supprimer" MAIS faire moins de 15 lettres !
+                          // Ça exclut la longue phrase "Voulez-vous vraiment..."
+                          if (text.contains("supprimer") && text.length() < 15) {
+                              targetNode = node;
+                              break;
+                          }
+                      }
+                      root.recycle(); 
+                      if (targetNode != null) break;
+                  }
+
+                  if (targetNode != null) {
+                      Rect bounds = new Rect();
+                      targetNode.getBoundsInScreen(bounds);
                       
-                      // 2. Vérification stricte pour isoler le bouton gris
-                      if (text.equals("supprimer")) {
-                          
-                          boolean clicked = false;
-                          AccessibilityNodeInfo clickableNode = node;
-                          
-                          // 3. CLIC NATIF : On remonte l'arbre pour trouver l'élément cliquable
-                          while (clickableNode != null) {
-                              if (clickableNode.isClickable()) {
-                                  // Déclenche l'action officielle d'Android !
-                                  clickableNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                                  clicked = true;
-                                  break;
-                              }
-                              clickableNode = clickableNode.getParent();
-                          }
-                          
-                          // 4. PLAN B : Si le clic natif échoue, on force les coordonnées
-                          if (!clicked) {
-                              Rect bounds = new Rect();
-                              node.getBoundsInScreen(bounds);
-                              tap(bounds.centerX(), bounds.centerY());
-                          }
-                          
+                      if (bounds.width() > 0 && bounds.height() > 0) {
+                          final int x = bounds.centerX();
+                          final int y = bounds.centerY();
+
                           lastClickTime = System.currentTimeMillis();
-                          break; // Mission accomplie, on arrête de chercher
+                          
+                          // On attend 300 millisecondes que l'animation de la popup Snapchat se termine
+                          handler.postDelayed(() -> {
+                              handler.post(() -> Toast.makeText(getApplicationContext(), "💥 Clic! X:" + x + " Y:" + y, Toast.LENGTH_SHORT).show());
+                              forceTap(x, y);
+                          }, 300);
                       }
                   }
-                  
-                  rootNode.recycle(); // Libère la mémoire
               }
               
-              // Méthode de secours (Plan B)
-              public void tap(int x, int y) {
+              // Simulation d'un doigt humain pur
+              private void forceTap(int x, int y) {
                   Path path = new Path();
                   path.moveTo(x, y);
+                  
                   GestureDescription.Builder builder = new GestureDescription.Builder();
-                  builder.addStroke(new GestureDescription.StrokeDescription(path, 10, 50));
+                  // Un tap d'une durée de 60ms (exactement comme un toucher humain)
+                  builder.addStroke(new GestureDescription.StrokeDescription(path, 0, 60));
+                  
                   dispatchGesture(builder.build(), null, null);
               }
 
@@ -433,7 +444,6 @@ jobs:
                   btnFloat.setOnClickListener(v -> {
                       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
                           startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName())));
-                          Toast.makeText(this, "Autorise l'affichage par-dessus les autres apps", Toast.LENGTH_LONG).show();
                       } else {
                           startService(new Intent(this, FloatingRobotService.class));
                           Toast.makeText(this, "Robot flottant lancé !", Toast.LENGTH_SHORT).show();
@@ -443,20 +453,15 @@ jobs:
           }
           EOF
 
-          echo "=== 2. Gestion de la Signature et Build Gradle ==="
+          echo "=== 2. Build ==="
           gradle wrapper --gradle-version 8.7
           chmod +x gradlew
-
           if [ -n "$KEYSTORE_BASE64" ] && [ ${#KEYSTORE_BASE64} -gt 100 ]; then
             echo "$KEYSTORE_BASE64" | base64 -d > app/lml-stable.keystore
-            echo "✓ Keystore décodé avec succès. Compilation en Release..."
-            ./gradlew clean assembleRelease --stacktrace --info
+            ./gradlew clean assembleRelease --stacktrace
           else
-            echo "⚠️ Pas de keystore valide détecté. Compilation en Debug..."
-            ./gradlew clean assembleDebug --stacktrace --info
+            ./gradlew clean assembleDebug --stacktrace
           fi
-
-          echo "=== ✅ BUILD TERMINE ==="
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
