@@ -145,15 +145,14 @@ jobs:
 
           cat > app/src/main/res/values/styles.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <style name="Theme.LML" parent="Theme.AppCompat.Light.DarkActionBar" />
-          </resources>
+          <resources><style name="Theme.LML" parent="Theme.AppCompat.Light.DarkActionBar" /></resources>
           EOF
 
           cat > app/src/main/res/drawable/ic_launcher.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+              android:width="108dp" android:height="108dp"
+              android:viewportWidth="108" android:viewportHeight="108">
               <path android:fillColor="#2196F3" android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0" />
               <path android:fillColor="#FFFFFF" android:pathData="M35,40 L73,40 L73,68 L35,68 Z M40,45 L68,45 L68,63 L40,63 Z" />
           </vector>
@@ -178,7 +177,6 @@ jobs:
           <resources><string name="app_name">LML Sniper</string></resources>
           EOF
 
-          # AJOUT DES FLAGS: flagIncludeNotImportantViews pour voir les boutons invisibles
           cat > app/src/main/res/xml/accessibility_service_config.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
@@ -190,7 +188,7 @@ jobs:
               android:notificationTimeout="50" />
           EOF
 
-          # --- LE CERVEAU BIO-MIMÉTIQUE ---
+          # --- LE CERVEAU REPROGRAMMÉ (Scan Profond + Balayage) ---
           cat > app/src/main/java/com/lml/robotai/LmlAccessibilityService.java << 'EOF'
           package com.lml.robotai;
           import android.accessibilityservice.AccessibilityService;
@@ -199,6 +197,7 @@ jobs:
           import android.graphics.Rect;
           import android.os.Handler;
           import android.os.Looper;
+          import android.util.DisplayMetrics;
           import android.view.accessibility.AccessibilityEvent;
           import android.view.accessibility.AccessibilityNodeInfo;
           import android.view.accessibility.AccessibilityWindowInfo;
@@ -212,114 +211,104 @@ jobs:
               private long lastClickTime = 0;
               private Handler handler = new Handler(Looper.getMainLooper());
 
-              private Runnable radarTask = new Runnable() {
-                  @Override
-                  public void run() {
-                      if (isAutoClickEnabled) {
-                          huntForDeleteButton();
-                      }
-                      handler.postDelayed(this, 300);
-                  }
-              };
-              
               @Override protected void onServiceConnected() { 
                   super.onServiceConnected(); 
                   INSTANCE = this;
-                  handler.post(radarTask);
               }
 
-              @Override public void onAccessibilityEvent(AccessibilityEvent event) {}
+              @Override 
+              public void onAccessibilityEvent(AccessibilityEvent event) {
+                  if (!isAutoClickEnabled) return;
 
-              private void huntForDeleteButton() {
-                  if (System.currentTimeMillis() - lastClickTime < 2500) return; 
+                  AccessibilityNodeInfo root = getRootInActiveWindow();
+                  if (root == null) return;
 
-                  // 1. On cherche d'abord dans l'arbre actif (souvent plus rapide pour les dialogs)
-                  AccessibilityNodeInfo activeRoot = getRootInActiveWindow();
-                  AccessibilityNodeInfo targetNode = searchInRoot(activeRoot);
+                  // On utilise notre propre méthode de recherche très puissante
+                  boolean isPopupVisible = false;
+                  Rect exactButtonRect = searchDeep(root);
+
+                  // Si on ne trouve pas le bouton exact, on cherche la phrase pour savoir si on est au bon endroit
+                  if (exactButtonRect == null) {
+                      isPopupVisible = !root.findAccessibilityNodeInfosByText("voulez").isEmpty() || 
+                                       !root.findAccessibilityNodeInfosByText("supprimer").isEmpty();
+                  } else {
+                      isPopupVisible = true;
+                  }
+
+                  if (isPopupVisible) {
+                      // Anti-spam de 2 secondes
+                      if (System.currentTimeMillis() - lastClickTime < 2000) return;
+                      lastClickTime = System.currentTimeMillis();
+
+                      // On attend 500ms pour que l'animation de la fenêtre Snapchat soit terminée
+                      handler.postDelayed(() -> {
+                          
+                          if (exactButtonRect != null) {
+                              // TENTATIVE 1 : On a trouvé les coordonnées parfaites du bouton
+                              int x = exactButtonRect.centerX();
+                              int y = exactButtonRect.centerY();
+                              handler.post(() -> Toast.makeText(getApplicationContext(), "🎯 Clic PRÉCIS !", Toast.LENGTH_SHORT).show());
+                              forcePhysicalTap(x, y);
+                          } else {
+                              // TENTATIVE 2 : Le bouton est caché (BALAYAGE VERTICAL)
+                              DisplayMetrics metrics = getResources().getDisplayMetrics();
+                              int x = metrics.widthPixels / 2;
+                              int y1 = (int)(metrics.heightPixels * 0.50); // Milieu exact
+                              int y2 = (int)(metrics.heightPixels * 0.53); // Un peu plus bas
+                              int y3 = (int)(metrics.heightPixels * 0.56); // Encore plus bas (Bouton Supprimer)
+                              
+                              handler.post(() -> Toast.makeText(getApplicationContext(), "💥 BALAYAGE !", Toast.LENGTH_SHORT).show());
+                              
+                              // On tire 3 fois très rapidement pour être sûr de toucher "Supprimer"
+                              forcePhysicalTap(x, y1);
+                              handler.postDelayed(() -> forcePhysicalTap(x, y2), 100);
+                              handler.postDelayed(() -> forcePhysicalTap(x, y3), 200);
+                          }
+                          
+                      }, 500); 
+                  }
                   
-                  // 2. Si pas trouvé, on cherche dans TOUTES les fenêtres
-                  if (targetNode == null) {
-                      List<AccessibilityWindowInfo> windows = getWindows();
-                      if (windows != null) {
-                          for (AccessibilityWindowInfo window : windows) {
-                              AccessibilityNodeInfo root = window.getRoot();
-                              targetNode = searchInRoot(root);
-                              if (root != null) root.recycle();
-                              if (targetNode != null) break;
-                          }
-                      }
-                  }
-
-                  if (targetNode != null) {
-                      lastClickTime = System.currentTimeMillis(); 
-                      Rect bounds = new Rect();
-                      targetNode.getBoundsInScreen(bounds);
-                      
-                      if (bounds.width() > 0 && bounds.height() > 0) {
-                          final int x = bounds.centerX();
-                          final int y = bounds.centerY();
-                          final AccessibilityNodeInfo clickableTarget = targetNode;
-
-                          // On attend 500ms que Snapchat finisse de charger son bouton
-                          handler.postDelayed(() -> {
-                              
-                              // ATTAQUE 1 : Le Clic Natif d'Android sur TOUS les parents
-                              boolean nativeClickSuccess = false;
-                              AccessibilityNodeInfo parent = clickableTarget;
-                              for(int i=0; i<4; i++) { // Remonte jusqu'à 4 parents
-                                  if(parent != null && parent.isClickable()){
-                                      nativeClickSuccess = parent.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                                      if(nativeClickSuccess) break;
-                                  }
-                                  if(parent != null) parent = parent.getParent();
-                              }
-
-                              // ATTAQUE 2 : Le Clic Humain simulé
-                              forceHumanTap(x, y);
-                              
-                          }, 500); 
-                      }
-                  }
-                  if (activeRoot != null) activeRoot.recycle();
-              }
-
-              private AccessibilityNodeInfo searchInRoot(AccessibilityNodeInfo root) {
-                  if (root == null) return null;
-                  List<AccessibilityNodeInfo> nodes = root.findAccessibilityNodeInfosByText("supprimer");
-                  for (AccessibilityNodeInfo node : nodes) {
-                      if (node.getText() != null) {
-                          String text = node.getText().toString().toLowerCase().trim();
-                          // Ignore la phrase descriptive qui fait plus de 15 caractères
-                          if (text.contains("supprimer") && text.length() < 15) {
-                              return node;
-                          }
-                      }
-                  }
-                  return null;
+                  root.recycle();
               }
               
-              private void forceHumanTap(int x, int y) {
+              // Fonction de fouille manuelle (beaucoup plus puissante que celle d'Android)
+              private Rect searchDeep(AccessibilityNodeInfo node) {
+                  if (node == null) return null;
+                  
+                  CharSequence textObj = node.getText();
+                  CharSequence descObj = node.getContentDescription();
+                  
+                  String text = textObj != null ? textObj.toString().toLowerCase().trim() : "";
+                  String desc = descObj != null ? descObj.toString().toLowerCase().trim() : "";
+                  
+                  // On vérifie si c'est notre bouton ("supprimer" tout seul, max 12 lettres)
+                  if ((text.contains("supprimer") && text.length() <= 12) || 
+                      (desc.contains("supprimer") && desc.length() <= 12)) {
+                      Rect r = new Rect();
+                      node.getBoundsInScreen(r);
+                      if (r.width() > 0 && r.height() > 0) return r;
+                  }
+                  
+                  // Sinon, on fouille dans les enfants
+                  for (int i = 0; i < node.getChildCount(); i++) {
+                      Rect childRect = searchDeep(node.getChild(i));
+                      if (childRect != null) return childRect;
+                  }
+                  
+                  return null;
+              }
+
+              // Le Clic Physique avec léger glissement
+              private void forcePhysicalTap(int x, int y) {
                   Path path = new Path();
                   path.moveTo(x, y);
-                  // Le mouvement humain : Le doigt glisse légèrement de 5 pixels pendant l'appui
-                  path.lineTo(x + 5, y + 5); 
+                  path.lineTo(x, y + 2); // Glissement de 2 pixels
                   
                   GestureDescription.Builder builder = new GestureDescription.Builder();
-                  // 250ms = Un vrai toucher charnel, impossible à détecter comme un bot
-                  builder.addStroke(new GestureDescription.StrokeDescription(path, 0, 250));
+                  // Tap rapide de 60ms
+                  builder.addStroke(new GestureDescription.StrokeDescription(path, 0, 60));
                   
-                  dispatchGesture(builder.build(), new GestureResultCallback() {
-                      @Override
-                      public void onCompleted(GestureDescription gestureDescription) {
-                          super.onCompleted(gestureDescription);
-                          handler.post(() -> Toast.makeText(getApplicationContext(), "✅ Clic physique ACCEPTÉ", Toast.LENGTH_SHORT).show());
-                      }
-                      @Override
-                      public void onCancelled(GestureDescription gestureDescription) {
-                          super.onCancelled(gestureDescription);
-                          handler.post(() -> Toast.makeText(getApplicationContext(), "❌ Clic REJETÉ par le système", Toast.LENGTH_SHORT).show());
-                      }
-                  }, null);
+                  dispatchGesture(builder.build(), null, null);
               }
 
               @Override public void onInterrupt() {}
