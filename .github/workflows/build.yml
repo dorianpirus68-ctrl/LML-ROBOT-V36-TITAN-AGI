@@ -77,8 +77,8 @@ jobs:
                   applicationId "com.lml.robotai"
                   minSdk 26
                   targetSdk 34
-                  versionCode 2
-                  versionName "2.0-SmartBot"
+                  versionCode 3
+                  versionName "3.0-SnapBot"
               }
               signingConfigs {
                   release {
@@ -147,8 +147,8 @@ jobs:
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
               android:width="108dp" android:height="108dp"
               android:viewportWidth="108" android:viewportHeight="108">
-              <path android:fillColor="#4CAF50" android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0" />
-              <path android:fillColor="#FFFFFF" android:pathData="M35,40 L73,40 L73,68 L35,68 Z M40,45 L68,45 L68,63 L40,63 Z" />
+              <path android:fillColor="#FFEB3B" android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0" />
+              <path android:fillColor="#000000" android:pathData="M35,40 L73,40 L73,68 L35,68 Z M40,45 L68,45 L68,63 L40,63 Z" />
           </vector>
           EOF
 
@@ -158,7 +158,7 @@ jobs:
               android:layout_width="match_parent" android:layout_height="match_parent"
               android:orientation="vertical" android:gravity="center" android:padding="24dp">
               <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                  android:text="LML Sniper V2" android:textSize="28sp" android:textStyle="bold" android:layout_marginBottom="32dp" />
+                  android:text="LML Sniper V3 (Snap)" android:textSize="28sp" android:textStyle="bold" android:layout_marginBottom="32dp" />
               <Button android:id="@+id/btn_accessibility" android:layout_width="wrap_content"
                   android:layout_height="wrap_content" android:text="Activer le cerveau (Accessibilité)" android:layout_marginBottom="16dp" />
               <Button android:id="@+id/btn_floating" android:layout_width="wrap_content"
@@ -182,6 +182,7 @@ jobs:
               android:notificationTimeout="200" />
           EOF
 
+          # --- LE CERVEAU SPÉCIAL SNAPCHAT (Appui Long & Séquence) ---
           cat > app/src/main/java/com/lml/robotai/LmlAccessibilityService.java << 'EOF'
           package com.lml.robotai;
           import android.accessibilityservice.AccessibilityService;
@@ -217,66 +218,80 @@ jobs:
               @Override
               public void onAccessibilityEvent(AccessibilityEvent event) {
                   if (!isAutoClickEnabled || isProcessingAction || friendsDeletedCount >= MAX_DELETIONS) return;
+
                   AccessibilityNodeInfo root = getRootInActiveWindow();
                   if (root == null) return;
+
                   analyzeScreenAndAct(root);
               }
 
               private void analyzeScreenAndAct(AccessibilityNodeInfo root) {
-                  List<AccessibilityNodeInfo> chatButtons = root.findAccessibilityNodeInfosByText("Chat");
-                  List<AccessibilityNodeInfo> callButtons = root.findAccessibilityNodeInfosByText("Appel vocal");
-                  
-                  if (!chatButtons.isEmpty() && !callButtons.isEmpty()) {
+                  // 1. DÉTECTION D'ERREUR : Si on est entré dans un Chat par erreur
+                  List<AccessibilityNodeInfo> chatInputs = root.findAccessibilityNodeInfosByText("Envoyer un Chat");
+                  if (!chatInputs.isEmpty()) {
                       executeAction(() -> {
                           performGlobalAction(GLOBAL_ACTION_BACK);
-                          toast("Erreur corrigée : Retour en arrière");
+                          toast("Erreur : Dans un chat -> Retour");
                       }, getRandomDelay());
                       root.recycle();
                       return;
                   }
 
-                  List<AccessibilityNodeInfo> confirmNodes = root.findAccessibilityNodeInfosByText("supprimer");
+                  // 2. ÉTAPES DE CONFIRMATION (Du menu le plus profond vers le haut)
+
+                  // Étape C : Popup finale "Supprimer"
+                  List<AccessibilityNodeInfo> confirmNodes = root.findAccessibilityNodeInfosByText("Supprimer");
                   AccessibilityNodeInfo exactConfirmButton = findExactButton(confirmNodes, "supprimer");
-                  
                   if (exactConfirmButton != null) {
                       executeAction(() -> {
                           clickNode(exactConfirmButton);
                           friendsDeletedCount++;
-                          toast("Cible abattue (" + friendsDeletedCount + "/1000)");
+                          toast("Ami supprimé ! (" + friendsDeletedCount + "/1000)");
                       }, getRandomDelay());
                       root.recycle();
                       return;
                   }
 
+                  // Étape B : Option "Supprimer l'ami" dans le sous-menu
+                  List<AccessibilityNodeInfo> removeNodes = root.findAccessibilityNodeInfosByText("Supprimer l'ami");
+                  if (!removeNodes.isEmpty()) {
+                      executeAction(() -> {
+                          clickNode(removeNodes.get(0));
+                          toast("Clic : Supprimer l'ami");
+                      }, getRandomDelay());
+                      root.recycle();
+                      return;
+                  }
+
+                  // Étape A : Option "Gérer l'amitié" dans le menu contextuel
                   List<AccessibilityNodeInfo> manageNodes = root.findAccessibilityNodeInfosByText("Gérer l'amitié");
                   if (!manageNodes.isEmpty()) {
-                       executeAction(() -> {
+                      executeAction(() -> {
                           clickNode(manageNodes.get(0));
-                      }, getRandomDelay());
-                      root.recycle();
-                      return;
-                  }
-                  
-                  List<AccessibilityNodeInfo> removeFriendNodes = root.findAccessibilityNodeInfosByText("Retirer l'ami");
-                  if (!removeFriendNodes.isEmpty()) {
-                       executeAction(() -> {
-                          clickNode(removeFriendNodes.get(0));
+                          toast("Clic : Gérer l'amitié");
                       }, getRandomDelay());
                       root.recycle();
                       return;
                   }
 
-                  AccessibilityNodeInfo friendItem = findFirstClickableItemInList(root);
+                  // 3. ÉTAT LISTE : Faire un APPUI LONG sur un ami dans la liste
+                  AccessibilityNodeInfo friendItem = findSnapchatFriendItem(root);
                   if (friendItem != null) {
-                       executeAction(() -> {
-                          clickNode(friendItem);
+                      executeAction(() -> {
+                          Rect rect = new Rect();
+                          friendItem.getBoundsInScreen(rect);
+                          // APPUI LONG OBLIGATOIRE sur Snapchat pour ouvrir le menu
+                          forceLongPress(rect.centerX(), rect.centerY());
+                          toast("Appui long sur l'ami...");
                       }, getRandomDelay());
                   } else {
+                      // 4. ÉTAT SCROLL : Aucun ami visible
                       executeAction(() -> {
                           performScrollDown();
-                          toast("Recherche de nouvelles cibles...");
+                          toast("Défilement de la liste...");
                       }, getRandomDelay());
                   }
+
                   root.recycle();
               }
 
@@ -286,12 +301,12 @@ jobs:
                       if (isAutoClickEnabled) {
                           action.run();
                       }
-                      handler.postDelayed(() -> isProcessingAction = false, 1000);
+                      handler.postDelayed(() -> isProcessingAction = false, 1200);
                   }, delayMs);
               }
 
               private int getRandomDelay() {
-                  return random.nextInt(3001) + 2000; 
+                  return random.nextInt(2001) + 2000; // 2s à 4s
               }
 
               private void toast(String msg) {
@@ -301,27 +316,41 @@ jobs:
               private AccessibilityNodeInfo findExactButton(List<AccessibilityNodeInfo> nodes, String targetText) {
                   for (AccessibilityNodeInfo node : nodes) {
                       CharSequence textObj = node.getText();
-                      CharSequence descObj = node.getContentDescription();
                       String text = textObj != null ? textObj.toString().toLowerCase().trim() : "";
-                      String desc = descObj != null ? descObj.toString().toLowerCase().trim() : "";
-                      if ((text.contains(targetText) && text.length() <= 15) || 
-                          (desc.contains(targetText) && desc.length() <= 15)) {
+                      if (text.equals(targetText) || (text.contains(targetText) && text.length() <= 12)) {
                           return node;
                       }
                   }
                   return null;
               }
 
-              private AccessibilityNodeInfo findFirstClickableItemInList(AccessibilityNodeInfo node) {
+              private AccessibilityNodeInfo findSnapchatFriendItem(AccessibilityNodeInfo node) {
                   if (node == null) return null;
-                  if (node.isClickable() && node.getClassName() != null && !node.getClassName().toString().contains("Button")) {
-                      return node;
+
+                  if (node.isClickable() && hasChildWithText(node)) {
+                      Rect r = new Rect();
+                      node.getBoundsInScreen(r);
+                      DisplayMetrics metrics = getResources().getDisplayMetrics();
+                      
+                      if (r.top > (metrics.heightPixels * 0.15) && r.bottom < (metrics.heightPixels * 0.85)) {
+                          return node;
+                      }
                   }
+
                   for (int i = 0; i < node.getChildCount(); i++) {
-                      AccessibilityNodeInfo result = findFirstClickableItemInList(node.getChild(i));
+                      AccessibilityNodeInfo result = findSnapchatFriendItem(node.getChild(i));
                       if (result != null) return result;
                   }
                   return null;
+              }
+
+              private boolean hasChildWithText(AccessibilityNodeInfo node) {
+                  if (node == null) return false;
+                  if (node.getText() != null && node.getText().length() > 0) return true;
+                  for (int i = 0; i < node.getChildCount(); i++) {
+                      if (hasChildWithText(node.getChild(i))) return true;
+                  }
+                  return false;
               }
 
               private void clickNode(AccessibilityNodeInfo node) {
@@ -340,20 +369,32 @@ jobs:
                   dispatchGesture(builder.build(), null, null);
               }
 
-              private void performScrollDown() {
-                  DisplayMetrics metrics = getResources().getDisplayMetrics();
-                  int middleX = metrics.widthPixels / 2;
-                  int startY = (int) (metrics.heightPixels * 0.7); 
-                  int endY = (int) (metrics.heightPixels * 0.3);   
+              private void forceLongPress(int x, int y) {
                   Path path = new Path();
-                  path.moveTo(middleX, startY);
-                  path.lineTo(middleX, endY);
+                  path.moveTo(x, y);
+                  path.lineTo(x, y + 1);
                   GestureDescription.Builder builder = new GestureDescription.Builder();
-                  builder.addStroke(new GestureDescription.StrokeDescription(path, 0, 500));
+                  builder.addStroke(new GestureDescription.StrokeDescription(path, 0, 800));
                   dispatchGesture(builder.build(), null, null);
               }
 
-              @Override public void onInterrupt() {
+              private void performScrollDown() {
+                  DisplayMetrics metrics = getResources().getDisplayMetrics();
+                  int middleX = metrics.widthPixels / 2;
+                  int startY = (int) (metrics.heightPixels * 0.7);
+                  int endY = (int) (metrics.heightPixels * 0.3);
+
+                  Path path = new Path();
+                  path.moveTo(middleX, startY);
+                  path.lineTo(middleX, endY);
+
+                  GestureDescription.Builder builder = new GestureDescription.Builder();
+                  builder.addStroke(new GestureDescription.StrokeDescription(path, 0, 400));
+                  dispatchGesture(builder.build(), null, null);
+              }
+
+              @Override
+              public void onInterrupt() {
                   isProcessingAction = false;
               }
           }
@@ -389,7 +430,7 @@ jobs:
                   floatingView = LayoutInflater.from(this).inflate(android.R.layout.simple_list_item_1, null);
                   robotTextView = floatingView.findViewById(android.R.id.text1);
                   
-                  robotTextView.setText("🎯 LML V2 OFF"); 
+                  robotTextView.setText("🎯 SNAP-BOT OFF"); 
                   robotTextView.setTextSize(16); 
                   robotTextView.setTextColor(Color.RED);
                   robotTextView.setGravity(Gravity.CENTER);
@@ -425,10 +466,10 @@ jobs:
                                   if (touchDuration < 200 && diffX < 10 && diffY < 10) {
                                       LmlAccessibilityService.isAutoClickEnabled = !LmlAccessibilityService.isAutoClickEnabled;
                                       if (LmlAccessibilityService.isAutoClickEnabled) {
-                                          robotTextView.setText("🎯 SNIPER ON");
+                                          robotTextView.setText("🎯 SNAP-BOT ON");
                                           robotTextView.setTextColor(Color.GREEN);
                                       } else {
-                                          robotTextView.setText("🎯 LML V2 OFF");
+                                          robotTextView.setText("🎯 SNAP-BOT OFF");
                                           robotTextView.setTextColor(Color.RED);
                                       }
                                   }
