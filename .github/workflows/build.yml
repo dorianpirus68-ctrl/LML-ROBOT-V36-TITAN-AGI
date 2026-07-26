@@ -1,4 +1,4 @@
-name: Build LML Sniper APK
+Name: Build LML Sniper APK
 
 on: 
   push:
@@ -83,8 +83,8 @@ jobs:
                   applicationId "com.lml.robotai"
                   minSdk 24
                   targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
+                  versionCode 2
+                  versionName "2.0-SmartBot"
               }
               signingConfigs {
                   release {
@@ -153,7 +153,7 @@ jobs:
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
               android:width="108dp" android:height="108dp"
               android:viewportWidth="108" android:viewportHeight="108">
-              <path android:fillColor="#2196F3" android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0" />
+              <path android:fillColor="#4CAF50" android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0" />
               <path android:fillColor="#FFFFFF" android:pathData="M35,40 L73,40 L73,68 L35,68 Z M40,45 L68,45 L68,63 L40,63 Z" />
           </vector>
           EOF
@@ -164,11 +164,11 @@ jobs:
               android:layout_width="match_parent" android:layout_height="match_parent"
               android:orientation="vertical" android:gravity="center" android:padding="24dp">
               <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                  android:text="LML Sniper" android:textSize="28sp" android:textStyle="bold" android:layout_marginBottom="32dp" />
+                  android:text="LML Sniper V2" android:textSize="28sp" android:textStyle="bold" android:layout_marginBottom="32dp" />
               <Button android:id="@+id/btn_accessibility" android:layout_width="wrap_content"
-                  android:layout_height="wrap_content" android:text="Activer le service d'accessibilité" android:layout_marginBottom="16dp" />
+                  android:layout_height="wrap_content" android:text="Activer le cerveau (Accessibilité)" android:layout_marginBottom="16dp" />
               <Button android:id="@+id/btn_floating" android:layout_width="wrap_content"
-                  android:layout_height="wrap_content" android:text="Lancer le Robot Flottant" />
+                  android:layout_height="wrap_content" android:text="Lancer la télécommande flottante" />
           </LinearLayout>
           EOF
 
@@ -185,10 +185,10 @@ jobs:
               android:accessibilityFeedbackType="feedbackGeneric"
               android:canRetrieveWindowContent="true"
               android:canPerformGestures="true"
-              android:notificationTimeout="50" />
+              android:notificationTimeout="200" />
           EOF
 
-          # --- LE CERVEAU REPROGRAMMÉ (Scan Profond + Balayage) ---
+          # --- LE CERVEAU REPROGRAMMÉ (Machine à États & Timing Aléatoire) ---
           cat > app/src/main/java/com/lml/robotai/LmlAccessibilityService.java << 'EOF'
           package com.lml.robotai;
           import android.accessibilityservice.AccessibilityService;
@@ -200,118 +200,189 @@ jobs:
           import android.util.DisplayMetrics;
           import android.view.accessibility.AccessibilityEvent;
           import android.view.accessibility.AccessibilityNodeInfo;
-          import android.view.accessibility.AccessibilityWindowInfo;
           import android.widget.Toast;
           import java.util.List;
+          import java.util.Random;
 
           public class LmlAccessibilityService extends AccessibilityService {
               public static LmlAccessibilityService INSTANCE;
               public static boolean isAutoClickEnabled = false;
-              
-              private long lastClickTime = 0;
-              private Handler handler = new Handler(Looper.getMainLooper());
 
-              @Override protected void onServiceConnected() { 
-                  super.onServiceConnected(); 
+              private Handler handler = new Handler(Looper.getMainLooper());
+              private Random random = new Random();
+              
+              private boolean isProcessingAction = false;
+              private int friendsDeletedCount = 0;
+              private final int MAX_DELETIONS = 1000;
+
+              @Override
+              protected void onServiceConnected() {
+                  super.onServiceConnected();
                   INSTANCE = this;
               }
 
-              @Override 
+              @Override
               public void onAccessibilityEvent(AccessibilityEvent event) {
-                  if (!isAutoClickEnabled) return;
+                  // Le bot ne réagit que s'il est allumé, qu'il ne traite pas déjà une action, et qu'il n'a pas atteint la limite
+                  if (!isAutoClickEnabled || isProcessingAction || friendsDeletedCount >= MAX_DELETIONS) return;
 
                   AccessibilityNodeInfo root = getRootInActiveWindow();
                   if (root == null) return;
 
-                  // On utilise notre propre méthode de recherche très puissante
-                  boolean isPopupVisible = false;
-                  Rect exactButtonRect = searchDeep(root);
+                  analyzeScreenAndAct(root);
+              }
 
-                  // Si on ne trouve pas le bouton exact, on cherche la phrase pour savoir si on est au bon endroit
-                  if (exactButtonRect == null) {
-                      isPopupVisible = !root.findAccessibilityNodeInfosByText("voulez").isEmpty() || 
-                                       !root.findAccessibilityNodeInfosByText("supprimer").isEmpty();
-                  } else {
-                      isPopupVisible = true;
+              private void analyzeScreenAndAct(AccessibilityNodeInfo root) {
+                  // 1. VÉRIFICATION D'ERREUR : Est-on coincé sur un profil complet ?
+                  List<AccessibilityNodeInfo> chatButtons = root.findAccessibilityNodeInfosByText("Chat");
+                  List<AccessibilityNodeInfo> callButtons = root.findAccessibilityNodeInfosByText("Appel vocal");
+                  
+                  if (!chatButtons.isEmpty() && !callButtons.isEmpty()) {
+                      executeAction(() -> {
+                          performGlobalAction(GLOBAL_ACTION_BACK);
+                          toast("Erreur corrigée : Retour en arrière");
+                      }, getRandomDelay());
+                      root.recycle();
+                      return;
                   }
 
-                  if (isPopupVisible) {
-                      // Anti-spam de 2 secondes
-                      if (System.currentTimeMillis() - lastClickTime < 2000) return;
-                      lastClickTime = System.currentTimeMillis();
+                  // 2. ÉTAT CONFIRMATION : Popup "Voulez-vous supprimer ?"
+                  List<AccessibilityNodeInfo> confirmNodes = root.findAccessibilityNodeInfosByText("supprimer");
+                  AccessibilityNodeInfo exactConfirmButton = findExactButton(confirmNodes, "supprimer");
+                  
+                  if (exactConfirmButton != null) {
+                      executeAction(() -> {
+                          clickNode(exactConfirmButton);
+                          friendsDeletedCount++;
+                          toast("Cible abattue (" + friendsDeletedCount + "/1000)");
+                      }, getRandomDelay());
+                      root.recycle();
+                      return;
+                  }
 
-                      // On attend 500ms pour que l'animation de la fenêtre Snapchat soit terminée
-                      handler.postDelayed(() -> {
-                          
-                          if (exactButtonRect != null) {
-                              // TENTATIVE 1 : On a trouvé les coordonnées parfaites du bouton
-                              int x = exactButtonRect.centerX();
-                              int y = exactButtonRect.centerY();
-                              handler.post(() -> Toast.makeText(getApplicationContext(), "🎯 Clic PRÉCIS !", Toast.LENGTH_SHORT).show());
-                              forcePhysicalTap(x, y);
-                          } else {
-                              // TENTATIVE 2 : Le bouton est caché (BALAYAGE VERTICAL)
-                              DisplayMetrics metrics = getResources().getDisplayMetrics();
-                              int x = metrics.widthPixels / 2;
-                              int y1 = (int)(metrics.heightPixels * 0.50); // Milieu exact
-                              int y2 = (int)(metrics.heightPixels * 0.53); // Un peu plus bas
-                              int y3 = (int)(metrics.heightPixels * 0.56); // Encore plus bas (Bouton Supprimer)
-                              
-                              handler.post(() -> Toast.makeText(getApplicationContext(), "💥 BALAYAGE !", Toast.LENGTH_SHORT).show());
-                              
-                              // On tire 3 fois très rapidement pour être sûr de toucher "Supprimer"
-                              forcePhysicalTap(x, y1);
-                              handler.postDelayed(() -> forcePhysicalTap(x, y2), 100);
-                              handler.postDelayed(() -> forcePhysicalTap(x, y3), 200);
-                          }
-                          
-                      }, 500); 
+                  // 3. ÉTAT MENU PROFIL : Est-on dans le sous-menu Gérer l'amitié ?
+                  List<AccessibilityNodeInfo> manageNodes = root.findAccessibilityNodeInfosByText("Gérer l'amitié");
+                  if (!manageNodes.isEmpty()) {
+                       executeAction(() -> {
+                          clickNode(manageNodes.get(0));
+                      }, getRandomDelay());
+                      root.recycle();
+                      return;
                   }
                   
+                  List<AccessibilityNodeInfo> removeFriendNodes = root.findAccessibilityNodeInfosByText("Retirer l'ami");
+                  if (!removeFriendNodes.isEmpty()) {
+                       executeAction(() -> {
+                          clickNode(removeFriendNodes.get(0));
+                      }, getRandomDelay());
+                      root.recycle();
+                      return;
+                  }
+
+                  // 4. ÉTAT LISTE : On cherche le prochain ami
+                  AccessibilityNodeInfo friendItem = findFirstClickableItemInList(root);
+                  if (friendItem != null) {
+                       executeAction(() -> {
+                          clickNode(friendItem);
+                      }, getRandomDelay());
+                  } else {
+                      // 5. ÉTAT SCROLL : Plus d'amis visibles
+                      executeAction(() -> {
+                          performScrollDown();
+                          toast("Recherche de nouvelles cibles...");
+                      }, getRandomDelay());
+                  }
+
                   root.recycle();
               }
-              
-              // Fonction de fouille manuelle (beaucoup plus puissante que celle d'Android)
-              private Rect searchDeep(AccessibilityNodeInfo node) {
-                  if (node == null) return null;
-                  
-                  CharSequence textObj = node.getText();
-                  CharSequence descObj = node.getContentDescription();
-                  
-                  String text = textObj != null ? textObj.toString().toLowerCase().trim() : "";
-                  String desc = descObj != null ? descObj.toString().toLowerCase().trim() : "";
-                  
-                  // On vérifie si c'est notre bouton ("supprimer" tout seul, max 12 lettres)
-                  if ((text.contains("supprimer") && text.length() <= 12) || 
-                      (desc.contains("supprimer") && desc.length() <= 12)) {
-                      Rect r = new Rect();
-                      node.getBoundsInScreen(r);
-                      if (r.width() > 0 && r.height() > 0) return r;
+
+              // Mécanique de délai aléatoire et de verrouillage
+              private void executeAction(Runnable action, int delayMs) {
+                  isProcessingAction = true;
+                  handler.postDelayed(() -> {
+                      if (isAutoClickEnabled) {
+                          action.run();
+                      }
+                      // Temps de récupération (1 seconde) avant le prochain scan
+                      handler.postDelayed(() -> isProcessingAction = false, 1000);
+                  }, delayMs);
+              }
+
+              // 2000ms à 5000ms
+              private int getRandomDelay() {
+                  return random.nextInt(3001) + 2000; 
+              }
+
+              private void toast(String msg) {
+                  Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+              }
+
+              private AccessibilityNodeInfo findExactButton(List<AccessibilityNodeInfo> nodes, String targetText) {
+                  for (AccessibilityNodeInfo node : nodes) {
+                      CharSequence textObj = node.getText();
+                      CharSequence descObj = node.getContentDescription();
+                      
+                      String text = textObj != null ? textObj.toString().toLowerCase().trim() : "";
+                      String desc = descObj != null ? descObj.toString().toLowerCase().trim() : "";
+                      
+                      if ((text.contains(targetText) && text.length() <= 15) || 
+                          (desc.contains(targetText) && desc.length() <= 15)) {
+                          return node;
+                      }
                   }
-                  
-                  // Sinon, on fouille dans les enfants
-                  for (int i = 0; i < node.getChildCount(); i++) {
-                      Rect childRect = searchDeep(node.getChild(i));
-                      if (childRect != null) return childRect;
-                  }
-                  
                   return null;
               }
 
-              // Le Clic Physique avec léger glissement
+              private AccessibilityNodeInfo findFirstClickableItemInList(AccessibilityNodeInfo node) {
+                  if (node == null) return null;
+                  
+                  if (node.isClickable() && node.getClassName() != null && !node.getClassName().toString().contains("Button")) {
+                      return node;
+                  }
+                  
+                  for (int i = 0; i < node.getChildCount(); i++) {
+                      AccessibilityNodeInfo result = findFirstClickableItemInList(node.getChild(i));
+                      if (result != null) return result;
+                  }
+                  return null;
+              }
+
+              private void clickNode(AccessibilityNodeInfo node) {
+                  if (node == null) return;
+                  Rect rect = new Rect();
+                  node.getBoundsInScreen(rect);
+                  forcePhysicalTap(rect.centerX(), rect.centerY());
+              }
+
               private void forcePhysicalTap(int x, int y) {
                   Path path = new Path();
                   path.moveTo(x, y);
-                  path.lineTo(x, y + 2); // Glissement de 2 pixels
+                  path.lineTo(x, y + 2);
                   
                   GestureDescription.Builder builder = new GestureDescription.Builder();
-                  // Tap rapide de 60ms
-                  builder.addStroke(new GestureDescription.StrokeDescription(path, 0, 60));
-                  
+                  builder.addStroke(new GestureDescription.StrokeDescription(path, 0, 50));
                   dispatchGesture(builder.build(), null, null);
               }
 
-              @Override public void onInterrupt() {}
+              private void performScrollDown() {
+                  DisplayMetrics metrics = getResources().getDisplayMetrics();
+                  int middleX = metrics.widthPixels / 2;
+                  int startY = (int) (metrics.heightPixels * 0.7); 
+                  int endY = (int) (metrics.heightPixels * 0.3);   
+
+                  Path path = new Path();
+                  path.moveTo(middleX, startY);
+                  path.lineTo(middleX, endY);
+
+                  GestureDescription.Builder builder = new GestureDescription.Builder();
+                  builder.addStroke(new GestureDescription.StrokeDescription(path, 0, 500));
+                  dispatchGesture(builder.build(), null, null);
+              }
+
+              @Override
+              public void onInterrupt() {
+                  isProcessingAction = false;
+              }
           }
           EOF
 
@@ -345,7 +416,7 @@ jobs:
                   floatingView = LayoutInflater.from(this).inflate(android.R.layout.simple_list_item_1, null);
                   robotTextView = floatingView.findViewById(android.R.id.text1);
                   
-                  robotTextView.setText("🎯 LML OFF"); 
+                  robotTextView.setText("🎯 LML V2 OFF"); 
                   robotTextView.setTextSize(16); 
                   robotTextView.setTextColor(Color.RED);
                   robotTextView.setGravity(Gravity.CENTER);
@@ -384,7 +455,7 @@ jobs:
                                           robotTextView.setText("🎯 SNIPER ON");
                                           robotTextView.setTextColor(Color.GREEN);
                                       } else {
-                                          robotTextView.setText("🎯 LML OFF");
+                                          robotTextView.setText("🎯 LML V2 OFF");
                                           robotTextView.setTextColor(Color.RED);
                                       }
                                   }
@@ -429,7 +500,7 @@ jobs:
                           startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName())));
                       } else {
                           startService(new Intent(this, FloatingRobotService.class));
-                          Toast.makeText(this, "Robot flottant lancé !", Toast.LENGTH_SHORT).show();
+                          Toast.makeText(this, "Télécommande flottante lancée !", Toast.LENGTH_SHORT).show();
                       }
                   });
               }
@@ -452,4 +523,3 @@ jobs:
           name: LML-Sniper-APK
           path: app/build/outputs/apk/**/*.apk
           retention-days: 30
-
