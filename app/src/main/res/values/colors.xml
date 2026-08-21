@@ -1,0 +1,11 @@
+<resources>
+    <color name="nexus_void">#06101D</color>
+    <color name="nexus_surface">#0D1C2D</color>
+    <color name="nexus_panel">#102943</color>
+    <color name="nexus_line">#24536C</color>
+    <color name="nexus_cyan">#5BF5FF</color>
+    <color name="nexus_text">#E5FBFF</color>
+    <color name="nexus_muted">#A4C3CD</color>
+    <color name="nexus_amber">#FFCD5A</color>
+    <color name="nexus_coral">#FF7E76</color>
+</resources>

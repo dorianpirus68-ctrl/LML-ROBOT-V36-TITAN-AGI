@@ -2,9 +2,18 @@
     <style name="Theme.LMLControl" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:statusBarColor">#060F1D</item>
-        <item name="android:navigationBarColor">#060F1D</item>
-        <item name="android:colorAccent">#5BF5FF</item>
+        <item name="android:windowBackground">@color/nexus_void</item>
+        <item name="android:statusBarColor">@color/nexus_void</item>
+        <item name="android:navigationBarColor">@color/nexus_void</item>
+        <item name="android:colorAccent">@color/nexus_cyan</item>
+        <item name="android:buttonStyle">@style/NexusButton</item>
         <item name="android:windowActionModeOverlay">true</item>
+    </style>
+    <style name="NexusButton" parent="@android:style/Widget.Material.Button">
+        <item name="android:background">@drawable/nexus_button</item>
+        <item name="android:textColor">@color/nexus_text</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:letterSpacing">0.025</item>
     </style>
 </resources>
