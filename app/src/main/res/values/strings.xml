@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">LML Control</string>
+    <string name="screen_title">LML Control</string>
+    <string name="welcome_message">Un tableau de bord unique, simple et sous votre contrôle.</string>
+    <string name="status_off">Assistant désactivé</string>
+    <string name="status_on">Assistant prêt : aucune action autonome</string>
+    <string name="toggle_on">Activer l’assistant</string>
+    <string name="toggle_off">Désactiver l’assistant</string>
+    <string name="assistant_title">Assistant intelligent</string>
+    <string name="assistant_description">L’assistant explique les réglages et suggère une prochaine étape. Il n’interagit pas avec des applications tierces et ne déclenche aucune action sans votre validation.</string>
+    <string name="safety_title">Sécurité</string>
+    <string name="safety_description">L’application ne demande ni accès à l’accessibilité ni autorisation de superposition. Les actions restent locales et manuelles.</string>
+    <string name="confirm">Compris</string>
+</resources>
