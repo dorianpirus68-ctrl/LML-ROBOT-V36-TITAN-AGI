@@ -17,7 +17,7 @@ object LocalAgentRuntime {
 
     @JvmStatic
     fun replyAsync(context: Context, query: String, allowedApps: Int, scenarios: Int, callback: JavaCallback) {
-        Thread {
+        Thread({
             val modelFile = ModelDownloadManager.getModelFile(context)
             if (!ModelDownloadManager.isInstalled(context)) {
                 callback.onReply("Le moteur local n’est pas encore téléchargé. Ouvrez Modèle local pour installer Qwen3 0.6B, ou utilisez l’aide locale disponible.")
