@@ -104,4 +104,8 @@
     <string name="reminder_channel_name">Rappels d’objectifs</string>
     <string name="reminder_notification_title">Objectif à superviser</string>
     <string name="reminder_notification_text">Rappel : %1$s. Ouvrez LML Control pour examiner et confirmer la suite.</string>
+    <string name="model_manager">Modèle local et mémoire</string>
+    <string name="mission_control">Centre de mission et validation</string>
+    <string name="model_ready">MOTEUR LOCAL : Qwen3 0.6B INT4 installé — agent conversationnel disponible</string>
+    <string name="model_missing">MOTEUR LOCAL : à télécharger — l’assistant utilise un mode de secours à règles</string>
 </resources>

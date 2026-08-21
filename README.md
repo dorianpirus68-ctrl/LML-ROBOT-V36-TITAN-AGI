@@ -28,3 +28,18 @@ Un scénario enregistré est un **guide supervisé**, pas une capacité de pilot
 ## Construire l’APK
 
 Le workflow GitHub Actions construit un APK de débogage à chaque envoi vers le dépôt et lors d’un lancement manuel. L’artefact produit porte le nom `LML-Control-APK` et est conservé pendant 30 jours.
+
+## LML Nexus Holographique — version 2.0
+
+La version `2.0.0-holo` introduit une interface de mission sombre et holographique, un centre de planification supervisée, une passerelle de modèle local et une double validation explicite.
+
+| Composant | Responsabilité |
+|---|---|
+| `HoloCoreView` | Représentation visuelle locale du noyau de supervision. |
+| `MissionControlActivity` | Prépare un plan, classe le risque, génère une empreinte et exige une validation en deux étapes. |
+| `DualApprovalGate` | Ticket local unique avec empreinte de plan et expiration courte. |
+| `ModelManagerActivity` | Télécharge dans le stockage privé un modèle LiteRT-LM Qwen3-0.6B INT4 après installation de l’APK. |
+| `LocalAgentRuntime` | Charge le modèle sur un thread séparé et produit une réponse conversationnelle locale. |
+| `AgentPolicy` | Politique déterministe : le modèle ne décide ni des permissions ni des actions exécutables. |
+
+Le modèle est volontairement téléchargé après l’installation : son artefact quantifié est volumineux et son fonctionnement dépend des capacités mémoire et thermiques du téléphone. LML-Control ne délègue aucune action critique au modèle et conserve la validation humaine pour tout plan à risque.
