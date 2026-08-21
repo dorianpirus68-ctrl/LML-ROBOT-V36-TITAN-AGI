@@ -61,6 +61,14 @@
     <string name="allowed_apps_clear">Retirer toutes les applications</string>
     <string name="allowed_apps_clear_description">La liste locale des applications autorisées sera effacée.</string>
     <string name="allowed_apps_count">Applications autorisées : %1$d</string>
+    <string name="allowed_apps_profiles_count">Profils guidés : %1$d</string>
+    <string name="allowed_apps_explore">Explorer et préparer un profil</string>
+    <string name="allowed_apps_explore_need_selection">Ajoutez d’abord une application à la liste autorisée avant de créer un profil guidé.</string>
+    <string name="allowed_apps_explore_description">Ajoutez un objectif et vos propres observations. LML-Control ne lit pas l’écran ni le contenu de l’application.</string>
+    <string name="allowed_apps_profile_title">Profil guidé : %1$s</string>
+    <string name="allowed_apps_profile_objective_hint">Objectif que vous souhaitez apprendre à superviser</string>
+    <string name="allowed_apps_profile_notes_hint">Étapes ou observations ajoutées par vous</string>
+    <string name="allowed_apps_profile_saved">Profil guidé enregistré localement.</string>
 
     <string name="training_title">Scénarios et objectifs</string>
     <string name="training_description">Enregistrez un scénario sous votre contrôle : une application, un objectif et des étapes. Le scénario est local et sert de guide ; il ne lance aucune action seul.</string>

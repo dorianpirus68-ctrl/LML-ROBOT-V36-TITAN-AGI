@@ -75,7 +75,8 @@ public class MissionControlActivity extends FragmentActivity {
 
     private void generatePlan() {
         plan = AgentPolicy.propose(objective.getText().toString(), AllowedAppsActivity.getAllowedCount(this), TrainingActivity.getScenarioCount(this));
-        planText.setText("PLAN : " + plan.action + "\nRISQUE : " + plan.risk + "\n" + plan.explanation + "\nEMPREINTE : " + plan.hash.substring(0, 16));
+        NexusAuditLog.record(this, "plan_generated", plan.actionType.name());
+        planText.setText(plan.summary());
     }
 
     private void approveStageOne() {

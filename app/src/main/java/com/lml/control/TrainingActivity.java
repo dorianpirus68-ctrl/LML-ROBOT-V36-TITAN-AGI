@@ -86,29 +86,12 @@ public class TrainingActivity extends Activity {
             Toast.makeText(this, R.string.training_required, Toast.LENGTH_LONG).show();
             return;
         }
-        String timestamp = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Calendar.getInstance().getTime());
-        String entry = timestamp + " | " + application + " | " + objective + "\n" + steps;
-        String existing = preferences.getString(KEY_SCENARIOS, "");
-        String updated = existing.isEmpty() ? entry : entry + "\n\n" + existing;
-        preferences.edit().putString(KEY_SCENARIOS, keepRecentScenarios(updated)).apply();
+        NexusScenarioStore.add(this, application, objective, steps);
         applicationInput.setText("");
         objectiveInput.setText("");
         stepsInput.setText("");
         updateSummary();
         Toast.makeText(this, R.string.training_saved, Toast.LENGTH_SHORT).show();
-    }
-
-    private String keepRecentScenarios(String scenarios) {
-        String[] entries = scenarios.split("\\n\\n");
-        StringBuilder result = new StringBuilder();
-        int limit = Math.min(entries.length, 10);
-        for (int i = 0; i < limit; i++) {
-            if (i > 0) {
-                result.append("\n\n");
-            }
-            result.append(entries[i]);
-        }
-        return result.toString();
     }
 
     private void scheduleReminder() {
@@ -147,7 +130,6 @@ public class TrainingActivity extends Activity {
 
     public static int getScenarioCount(Activity activity) {
         SharedPreferences preferences = activity.getSharedPreferences(MainActivity.PREFERENCES_NAME, MODE_PRIVATE);
-        String scenarios = preferences.getString(KEY_SCENARIOS, "");
-        return scenarios.isEmpty() ? 0 : scenarios.split("\\n\\n").length;
+        return NexusScenarioStore.count(activity);
     }
 }
