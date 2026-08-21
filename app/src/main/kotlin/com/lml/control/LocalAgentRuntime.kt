@@ -45,7 +45,7 @@ object LocalAgentRuntime {
                         )
                     )
                     conversation.use {
-                        val answer = it.sendMessage(query).text
+                        val answer = it.sendMessage(query).toString()
                         callback.onReply(answer.ifBlank { "Je n’ai pas pu produire une réponse locale." })
                     }
                 }
