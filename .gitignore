@@ -1,0 +1,18 @@
+# Gradle
+.gradle/
+build/
+**/build/
+
+# Android Studio
+.local.properties
+*.iml
+.idea/
+
+# Android signing and secrets
+*.jks
+*.keystore
+keystore.properties
+
+# Distribution archives
+*.apk
+*.aab
