@@ -24,6 +24,8 @@ Ouvrez l’APK, complétez les paramètres du fournisseur, puis choisissez **Enr
 
 Pour Ollama, lancez le serveur sur l’ordinateur hôte, téléchargez au préalable le modèle souhaité, puis renseignez **l’adresse IP locale de l’ordinateur**, et non `localhost`, dans le téléphone. La documentation Ollama confirme la compatibilité de l’endpoint `/v1/chat/completions` et le format de requête utilisé par cette application. [1] [2]
 
+L’application accepte une URL `http://` uniquement lorsque l’hôte est une adresse IPv4 privée RFC 1918 (`10.x.x.x`, `172.16.x.x` à `172.31.x.x` ou `192.168.x.x`). Les fournisseurs distants doivent impérativement être configurés en `https://` ; ce contrôle évite l’envoi accidentel d’une clé vers un hôte HTTP externe.
+
 ## Sécurité et limites
 
 Cette version est volontairement conçue comme un **assistant de planification**. Elle ne permet pas de simuler une présence humaine, de contourner les règles d’un service, de supprimer des contacts en masse, de lire le contenu d’autres applications ou d’exécuter des interactions à votre insu. Les paramètres d’instruction imposent également l’identification des étapes irréversibles et la demande de confirmation avant leur réalisation manuelle.

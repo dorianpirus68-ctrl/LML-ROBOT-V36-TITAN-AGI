@@ -50,14 +50,48 @@ public final class OpenAiCompatibleClient {
         }
     }
 
+    /**
+     * Public providers must use HTTPS. HTTP is intentionally limited to an RFC1918 IPv4
+     * address so it can be used for a model hosted on the user's own local network.
+     */
     public static boolean isValidBaseUrl(String rawUrl) {
         try {
             URI uri = URI.create(rawUrl == null ? "" : rawUrl.trim());
-            return ("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme()))
-                    && uri.getHost() != null && !uri.getHost().isEmpty();
+            String host = uri.getHost();
+            if (host == null || host.isEmpty()) {
+                return false;
+            }
+            if ("https".equalsIgnoreCase(uri.getScheme())) {
+                return true;
+            }
+            return "http".equalsIgnoreCase(uri.getScheme()) && isPrivateIpv4Address(host);
         } catch (IllegalArgumentException ignored) {
             return false;
         }
+    }
+
+    private static boolean isPrivateIpv4Address(String host) {
+        String[] sections = host.split("[.]", -1);
+        if (sections.length != 4) {
+            return false;
+        }
+        int[] octets = new int[4];
+        try {
+            for (int index = 0; index < sections.length; index++) {
+                if (sections[index].isEmpty() || sections[index].length() > 3) {
+                    return false;
+                }
+                octets[index] = Integer.parseInt(sections[index]);
+                if (octets[index] < 0 || octets[index] > 255) {
+                    return false;
+                }
+            }
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
+        return octets[0] == 10
+                || (octets[0] == 172 && octets[1] >= 16 && octets[1] <= 31)
+                || (octets[0] == 192 && octets[1] == 168);
     }
 
     private JSONObject postJson(String url, JSONObject payload, String apiKey) throws Exception {

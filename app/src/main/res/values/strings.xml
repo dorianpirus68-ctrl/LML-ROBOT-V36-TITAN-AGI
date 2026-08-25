@@ -18,14 +18,14 @@
     <string name="response_section">Proposition de l’assistant</string>
     <string name="response_placeholder">Aucune proposition pour le moment.</string>
     <string name="safety_notice">L’application ne contrôle pas d’autres applications et ne réalise aucune action automatiquement. Vérifiez toujours les étapes avant d’agir.</string>
-    <string name="local_help">Pour un modèle local, utilisez l’adresse IP locale de votre serveur, jamais localhost. L’appareil et le serveur doivent être sur le même réseau.</string>
+    <string name="local_help">Pour un modèle local, utilisez l’adresse IPv4 privée de votre serveur, jamais localhost. L’appareil et le serveur doivent être sur le même réseau. Les fournisseurs distants doivent utiliser HTTPS.</string>
     <string name="system_instruction">Vous êtes un assistant de planification. Répondez en français. Proposez une séquence concise, réversible et vérifiable. N’affirmez jamais avoir réalisé une action. Ne donnez pas d’instructions pour contourner la sécurité, les règles d’un service, ni pour automatiser l’interaction avec des applications tierces. Signalez les conséquences possibles et demandez confirmation avant toute étape irréversible.</string>
     <string name="status_ready">Prêt</string>
     <string name="status_saving">Enregistrement…</string>
     <string name="status_testing">Test de connexion…</string>
     <string name="status_thinking">Analyse en cours…</string>
     <string name="status_saved">Configuration enregistrée sur cet appareil.</string>
-    <string name="error_invalid_url">Indiquez une URL de base http(s) valide.</string>
+    <string name="error_invalid_url">Utilisez une URL HTTPS, ou HTTP uniquement avec une adresse IPv4 privée du réseau local.</string>
     <string name="error_missing_model">Indiquez le nom du modèle.</string>
     <string name="error_missing_task">Décrivez la demande à analyser.</string>
     <string name="error_network">La requête a échoué.</string>
