@@ -51,9 +51,11 @@ public final class MainActivity extends AppCompatActivity {
     private TextView criticText;
     private TextView safetyText;
     private TextView contextInfoText;
+    private TextView neuralSuggestionText;
     private LinearLayout chatHistory;
     private ScrollView conversationScroll;
     private View multiBrainDetails;
+    private View neuralSuggestionCard;
     private View localActionsPanel;
     private MaterialButton saveButton;
     private MaterialButton testConnectionButton;
@@ -67,6 +69,7 @@ public final class MainActivity extends AppCompatActivity {
     private MaterialButton mapsButton;
     private MaterialButton emailButton;
     private MaterialButton smsButton;
+    private MaterialButton neuralSuggestionButton;
     private MaterialButton newConversationButton;
     private MaterialButton suggestionProjectButton;
     private MaterialButton suggestionMeetingButton;
@@ -77,6 +80,8 @@ public final class MainActivity extends AppCompatActivity {
     private final OpenAiCompatibleClient aiClient = new OpenAiCompatibleClient();
     private final MultiBrainOrchestrator multiBrainOrchestrator = new MultiBrainOrchestrator(aiClient);
     private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
+    private LocalIntentNeuralClassifier localIntentClassifier;
+    private LocalIntentNeuralClassifier.Action suggestedNeuralAction = LocalIntentNeuralClassifier.Action.NONE;
     private final List<ChatEntry> conversation = new ArrayList<>();
     private volatile boolean busy = false;
     private String latestSynthesis = "";
@@ -102,9 +107,11 @@ public final class MainActivity extends AppCompatActivity {
         criticText = findViewById(R.id.criticText);
         safetyText = findViewById(R.id.safetyText);
         contextInfoText = findViewById(R.id.contextInfoText);
+        neuralSuggestionText = findViewById(R.id.neuralSuggestionText);
         chatHistory = findViewById(R.id.chatHistory);
         conversationScroll = findViewById(R.id.conversationScroll);
         multiBrainDetails = findViewById(R.id.multiBrainDetails);
+        neuralSuggestionCard = findViewById(R.id.neuralSuggestionCard);
         localActionsPanel = findViewById(R.id.localActionsPanel);
         saveButton = findViewById(R.id.saveButton);
         testConnectionButton = findViewById(R.id.testConnectionButton);
@@ -118,6 +125,7 @@ public final class MainActivity extends AppCompatActivity {
         mapsButton = findViewById(R.id.mapsButton);
         emailButton = findViewById(R.id.emailButton);
         smsButton = findViewById(R.id.smsButton);
+        neuralSuggestionButton = findViewById(R.id.neuralSuggestionButton);
         newConversationButton = findViewById(R.id.newConversationButton);
         suggestionProjectButton = findViewById(R.id.suggestionProjectButton);
         suggestionMeetingButton = findViewById(R.id.suggestionMeetingButton);
@@ -131,6 +139,7 @@ public final class MainActivity extends AppCompatActivity {
         }
         appendWelcomeMessage();
         updateConversationInfo();
+        loadLocalIntentClassifier();
 
         saveButton.setOnClickListener(view -> saveConfiguration());
         testConnectionButton.setOnClickListener(view -> testConnection());
@@ -144,6 +153,7 @@ public final class MainActivity extends AppCompatActivity {
         mapsButton.setOnClickListener(view -> requestMapSearch());
         emailButton.setOnClickListener(view -> requestEmailDraft());
         smsButton.setOnClickListener(view -> requestSmsDraft());
+        neuralSuggestionButton.setOnClickListener(view -> launchNeuralSuggestion());
         newConversationButton.setOnClickListener(view -> clearConversation());
         suggestionProjectButton.setOnClickListener(view -> useSuggestion(R.string.suggestion_project));
         suggestionMeetingButton.setOnClickListener(view -> useSuggestion(R.string.suggestion_meeting));
@@ -231,6 +241,7 @@ public final class MainActivity extends AppCompatActivity {
         appendConversationEntry(latestSynthesis, false);
         multiBrainDetails.setVisibility(View.VISIBLE);
         localActionsPanel.setVisibility(View.VISIBLE);
+        updateNeuralSuggestion();
         setStatus(result.isHumanConfirmationRecommended()
                 ? getString(R.string.status_confirmation_recommended)
                 : getString(R.string.status_collective_ready));
@@ -250,6 +261,7 @@ public final class MainActivity extends AppCompatActivity {
                     responseText.setText(result);
                     if (appendAssistantReply) appendConversationEntry(result, false);
                     localActionsPanel.setVisibility(View.VISIBLE);
+                    updateNeuralSuggestion();
                     setStatus(getString(R.string.status_ready));
                     busy = false;
                     setBusy(false);
@@ -465,6 +477,8 @@ public final class MainActivity extends AppCompatActivity {
         safetyText.setText(R.string.role_placeholder);
         multiBrainDetails.setVisibility(View.GONE);
         localActionsPanel.setVisibility(View.GONE);
+        neuralSuggestionCard.setVisibility(View.GONE);
+        suggestedNeuralAction = LocalIntentNeuralClassifier.Action.NONE;
         setStatus(getString(R.string.status_ready));
     }
 
@@ -496,6 +510,86 @@ public final class MainActivity extends AppCompatActivity {
         bubble.setGravity(isUser ? Gravity.END : Gravity.START);
         chatHistory.addView(bubble);
         conversationScroll.post(() -> conversationScroll.fullScroll(View.FOCUS_DOWN));
+    }
+
+    private void loadLocalIntentClassifier() {
+        try {
+            localIntentClassifier = LocalIntentNeuralClassifier.load(getApplicationContext());
+        } catch (Exception exception) {
+            localIntentClassifier = null;
+            neuralSuggestionCard.setVisibility(View.GONE);
+        }
+    }
+
+    private void updateNeuralSuggestion() {
+        neuralSuggestionCard.setVisibility(View.GONE);
+        suggestedNeuralAction = LocalIntentNeuralClassifier.Action.NONE;
+        String message = latestUserMessage();
+        if (localIntentClassifier == null || message.isEmpty()) return;
+
+        LocalIntentNeuralClassifier.Prediction prediction = localIntentClassifier.predict(message);
+        if (prediction.getAction() == LocalIntentNeuralClassifier.Action.NONE) return;
+
+        suggestedNeuralAction = prediction.getAction();
+        int actionName = neuralActionName(prediction.getAction());
+        int actionButton = neuralActionButton(prediction.getAction());
+        neuralSuggestionText.setText(getString(R.string.neural_suggestion_message,
+                getString(actionName), Math.round(prediction.getConfidence() * 100f)));
+        neuralSuggestionButton.setText(actionButton);
+        neuralSuggestionCard.setVisibility(View.VISIBLE);
+    }
+
+    private void launchNeuralSuggestion() {
+        switch (suggestedNeuralAction) {
+            case WEB:
+                requestWebSearch();
+                break;
+            case MAPS:
+                requestMapSearch();
+                break;
+            case EMAIL:
+                requestEmailDraft();
+                break;
+            case CALENDAR:
+                requestCalendarDraft();
+                break;
+            case NONE:
+            default:
+                Toast.makeText(this, R.string.neural_suggestion_unavailable, Toast.LENGTH_SHORT).show();
+                break;
+        }
+    }
+
+    private int neuralActionName(LocalIntentNeuralClassifier.Action action) {
+        switch (action) {
+            case WEB:
+                return R.string.neural_action_web;
+            case MAPS:
+                return R.string.neural_action_maps;
+            case EMAIL:
+                return R.string.neural_action_email;
+            case CALENDAR:
+                return R.string.neural_action_calendar;
+            case NONE:
+            default:
+                return R.string.neural_action_none;
+        }
+    }
+
+    private int neuralActionButton(LocalIntentNeuralClassifier.Action action) {
+        switch (action) {
+            case WEB:
+                return R.string.action_web_search;
+            case MAPS:
+                return R.string.action_maps;
+            case EMAIL:
+                return R.string.action_email_draft;
+            case CALENDAR:
+                return R.string.action_calendar_draft;
+            case NONE:
+            default:
+                return R.string.neural_action_none;
+        }
     }
 
     private void useSuggestion(int stringId) {
@@ -584,6 +678,7 @@ public final class MainActivity extends AppCompatActivity {
         mapsButton.setEnabled(!isBusy);
         emailButton.setEnabled(!isBusy);
         smsButton.setEnabled(!isBusy);
+        neuralSuggestionButton.setEnabled(!isBusy);
         newConversationButton.setEnabled(!isBusy);
         suggestionProjectButton.setEnabled(!isBusy);
         suggestionMeetingButton.setEnabled(!isBusy);

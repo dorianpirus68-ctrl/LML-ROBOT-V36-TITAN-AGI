@@ -124,4 +124,14 @@ Titre proposé :
 %1$s</string>
     <string name="status_external_action_opened">Action préparée dans l’application Android choisie. Vérifiez-la avant de poursuivre.</string>
     <string name="error_action_unavailable">Aucune application compatible ne peut ouvrir cette action.</string>
+
+    <string name="neural_suggestion_title">Suggestion du réseau neuronal local</string>
+    <string name="neural_suggestion_message">Le classifieur local reconnaît une intention « %1$s » avec une confiance de %2$d %%.</string>
+    <string name="neural_suggestion_help">Cette suggestion ne réalise rien seule : l’aperçu HITL reste obligatoire avant toute ouverture d’application.</string>
+    <string name="neural_suggestion_unavailable">Aucune suggestion neuronale autorisée n’est disponible.</string>
+    <string name="neural_action_web">recherche Web</string>
+    <string name="neural_action_maps">recherche dans Cartes</string>
+    <string name="neural_action_email">brouillon d’e-mail</string>
+    <string name="neural_action_calendar">brouillon de calendrier</string>
+    <string name="neural_action_none">aucune action</string>
 </resources>

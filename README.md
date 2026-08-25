@@ -57,6 +57,20 @@ La version enrichie ajoute trois **suggestions de démarrage** — planifier un 
 
 Ces fonctions s’ajoutent aux actions de copie, partage, export Markdown et brouillon de calendrier. Elles utilisent une liste blanche d’intentions Android codées dans l’application. Le modèle peut les proposer dans sa réponse, mais il ne peut pas générer ou exécuter un intent Android arbitraire.
 
+## Réseau neuronal local de suggestions
+
+LML inclut désormais un classifieur neuronal **entraîné localement** sur le sous-ensemble français du corpus public MASSIVE. Il reconnaît un ensemble fermé d’intentions : recherche Web, recherche dans Cartes, brouillon d’e-mail et brouillon de calendrier. MASSIVE contient des énoncés d’assistant virtuel annotés dans 51 langues, dont le français. [2] [3]
+
+Après une réponse du modèle, le classifieur analyse uniquement le dernier message utilisateur sur l’appareil. Si une intention autorisée dépasse son seuil de confiance, LML affiche une carte : la suggestion peut ouvrir le même parcours HITL que les boutons manuels, mais elle ne déclenche jamais d’action seule. Les poids, le script reproductible, les mesures de test et l’attribution du corpus sont décrits dans [NOTICE-MODEL.md](NOTICE-MODEL.md).
+
+| Élément du modèle | Valeur |
+|---|---|
+| Architecture | Caractéristiques hachées de mots et fragments de mots, couche ReLU de 48 neurones, sortie softmax. |
+| Sorties autorisées | `NONE`, `WEB`, `MAPS`, `EMAIL`, `CALENDAR`. |
+| Traitement | Local ; aucun message n’est transmis par le classifieur. |
+| Seuil | 62 % ; sous le seuil, LML ne propose rien. |
+| Garde-fou | La suggestion est limitée à la liste blanche d’actions et requiert toujours l’aperçu de confirmation. |
+
 ## Références GitHub étudiées
 
 Plusieurs projets ont servi à identifier des axes d’amélioration, sans copier leur code ni leurs mécanismes de contrôle. L’exemple de chat Kotlin de [shyam-barange/AI-Assistant](https://github.com/shyam-barange/AI-Assistant) a inspiré les suggestions de conversation, l’historique local et l’accès direct aux actions de texte. Le projet plus ambitieux [XTOM0706/arix-app](https://github.com/XTOM0706/arix-app) illustre l’intérêt d’un catalogue limité d’outils et d’une gestion d’erreurs par action ; ses capacités de contrôle d’applications, d’Accessibilité, de privilèges système et d’automatisation ne sont pas reprises dans LML. Le dépôt [Manus-Handyswap](https://github.com/syedusmanulhassan/Manus-Handyswap) ne contenait pas de code Android exploitable lors de la consultation.
@@ -98,6 +112,10 @@ app/
 .github/workflows/build.yml       Compilation et artefact APK
 ```
 
-## Référence
+## Références
 
 [1] [Ollama — compatibilité OpenAI](https://docs.ollama.com/api/openai-compatibility)
+
+[2] [Amazon Science — MASSIVE, jeu de données multilingue de compréhension du langage](https://www.amazon.science/blog/amazon-releases-51-language-dataset-for-language-understanding)
+
+[3] [Hugging Face — qanastek/MASSIVE, sous-ensemble français et licence CC BY 4.0](https://huggingface.co/datasets/qanastek/MASSIVE)
