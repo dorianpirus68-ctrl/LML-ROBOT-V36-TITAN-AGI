@@ -50,6 +50,7 @@ public final class MainActivity extends AppCompatActivity {
     private TextView plannerText;
     private TextView criticText;
     private TextView safetyText;
+    private TextView contextInfoText;
     private LinearLayout chatHistory;
     private ScrollView conversationScroll;
     private View multiBrainDetails;
@@ -62,6 +63,14 @@ public final class MainActivity extends AppCompatActivity {
     private MaterialButton shareButton;
     private MaterialButton exportButton;
     private MaterialButton calendarButton;
+    private MaterialButton webSearchButton;
+    private MaterialButton mapsButton;
+    private MaterialButton emailButton;
+    private MaterialButton smsButton;
+    private MaterialButton newConversationButton;
+    private MaterialButton suggestionProjectButton;
+    private MaterialButton suggestionMeetingButton;
+    private MaterialButton suggestionSummaryButton;
     private MaterialButton clearButton;
 
     private SecureConfigStore configStore;
@@ -92,6 +101,7 @@ public final class MainActivity extends AppCompatActivity {
         plannerText = findViewById(R.id.plannerText);
         criticText = findViewById(R.id.criticText);
         safetyText = findViewById(R.id.safetyText);
+        contextInfoText = findViewById(R.id.contextInfoText);
         chatHistory = findViewById(R.id.chatHistory);
         conversationScroll = findViewById(R.id.conversationScroll);
         multiBrainDetails = findViewById(R.id.multiBrainDetails);
@@ -104,6 +114,14 @@ public final class MainActivity extends AppCompatActivity {
         shareButton = findViewById(R.id.shareButton);
         exportButton = findViewById(R.id.exportButton);
         calendarButton = findViewById(R.id.calendarButton);
+        webSearchButton = findViewById(R.id.webSearchButton);
+        mapsButton = findViewById(R.id.mapsButton);
+        emailButton = findViewById(R.id.emailButton);
+        smsButton = findViewById(R.id.smsButton);
+        newConversationButton = findViewById(R.id.newConversationButton);
+        suggestionProjectButton = findViewById(R.id.suggestionProjectButton);
+        suggestionMeetingButton = findViewById(R.id.suggestionMeetingButton);
+        suggestionSummaryButton = findViewById(R.id.suggestionSummaryButton);
         clearButton = findViewById(R.id.clearButton);
 
         baseUrlInput.setText(configStore.getBaseUrl());
@@ -112,6 +130,7 @@ public final class MainActivity extends AppCompatActivity {
             apiKeyInput.setHint(getString(R.string.api_key_saved_hint));
         }
         appendWelcomeMessage();
+        updateConversationInfo();
 
         saveButton.setOnClickListener(view -> saveConfiguration());
         testConnectionButton.setOnClickListener(view -> testConnection());
@@ -121,6 +140,14 @@ public final class MainActivity extends AppCompatActivity {
         shareButton.setOnClickListener(view -> shareResponse());
         exportButton.setOnClickListener(view -> requestMarkdownExport());
         calendarButton.setOnClickListener(view -> requestCalendarDraft());
+        webSearchButton.setOnClickListener(view -> requestWebSearch());
+        mapsButton.setOnClickListener(view -> requestMapSearch());
+        emailButton.setOnClickListener(view -> requestEmailDraft());
+        smsButton.setOnClickListener(view -> requestSmsDraft());
+        newConversationButton.setOnClickListener(view -> clearConversation());
+        suggestionProjectButton.setOnClickListener(view -> useSuggestion(R.string.suggestion_project));
+        suggestionMeetingButton.setOnClickListener(view -> useSuggestion(R.string.suggestion_meeting));
+        suggestionSummaryButton.setOnClickListener(view -> useSuggestion(R.string.suggestion_summary));
         clearButton.setOnClickListener(view -> clearConversation());
     }
 
@@ -284,6 +311,84 @@ public final class MainActivity extends AppCompatActivity {
                 .show();
     }
 
+    private void requestWebSearch() {
+        String query = actionContext();
+        if (query.isEmpty()) {
+            Toast.makeText(this, R.string.error_no_result, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent intent = new Intent(Intent.ACTION_VIEW,
+                Uri.parse("https://www.google.com/search?q=" + Uri.encode(query)));
+        confirmExternalIntent(getString(R.string.web_search_preview_title),
+                getString(R.string.web_search_preview_message, shortPreview(query)),
+                getString(R.string.action_open_search), intent);
+    }
+
+    private void requestMapSearch() {
+        String query = actionContext();
+        if (query.isEmpty()) {
+            Toast.makeText(this, R.string.error_no_result, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode(query)));
+        confirmExternalIntent(getString(R.string.maps_preview_title),
+                getString(R.string.maps_preview_message, shortPreview(query)),
+                getString(R.string.action_open_maps), intent);
+    }
+
+    private void requestEmailDraft() {
+        String content = actionContext();
+        if (content.isEmpty()) {
+            Toast.makeText(this, R.string.error_no_result, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"));
+        intent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.email_draft_subject));
+        intent.putExtra(Intent.EXTRA_TEXT, content);
+        confirmExternalIntent(getString(R.string.email_preview_title),
+                getString(R.string.email_preview_message, shortPreview(content)),
+                getString(R.string.action_open_email), intent);
+    }
+
+    private void requestSmsDraft() {
+        String content = actionContext();
+        if (content.isEmpty()) {
+            Toast.makeText(this, R.string.error_no_result, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:"));
+        intent.putExtra("sms_body", content);
+        confirmExternalIntent(getString(R.string.sms_preview_title),
+                getString(R.string.sms_preview_message, shortPreview(content)),
+                getString(R.string.action_open_sms), intent);
+    }
+
+    private void confirmExternalIntent(String title, String message, String positiveLabel, Intent intent) {
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setNegativeButton(R.string.action_cancel, null)
+                .setPositiveButton(positiveLabel, (dialog, which) -> openExternalIntent(intent))
+                .show();
+    }
+
+    private void openExternalIntent(Intent intent) {
+        try {
+            startActivity(intent);
+            setStatus(getString(R.string.status_external_action_opened));
+        } catch (ActivityNotFoundException exception) {
+            Toast.makeText(this, R.string.error_action_unavailable, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private String actionContext() {
+        return !latestSynthesis.isEmpty() ? latestSynthesis : latestUserMessage();
+    }
+
+    private String shortPreview(String value) {
+        return value.length() > 360 ? value.substring(0, 360) + "…" : value;
+    }
+
     /** HITL: the user confirms, then the Calendar app presents its own editable event screen. */
     private void requestCalendarDraft() {
         String title = latestUserMessage();
@@ -349,7 +454,9 @@ public final class MainActivity extends AppCompatActivity {
     private void clearConversation() {
         conversation.clear();
         chatHistory.removeAllViews();
+        taskInput.setText("");
         appendWelcomeMessage();
+        updateConversationInfo();
         latestSynthesis = "";
         invalidateExportApproval();
         responseText.setText(R.string.response_placeholder);
@@ -364,6 +471,7 @@ public final class MainActivity extends AppCompatActivity {
     private void appendConversationEntry(String text, boolean isUser) {
         conversation.add(new ChatEntry(text, isUser));
         appendChatBubble(text, isUser, false);
+        updateConversationInfo();
     }
 
     private void appendChatBubble(String text, boolean isUser, boolean isError) {
@@ -388,6 +496,18 @@ public final class MainActivity extends AppCompatActivity {
         bubble.setGravity(isUser ? Gravity.END : Gravity.START);
         chatHistory.addView(bubble);
         conversationScroll.post(() -> conversationScroll.fullScroll(View.FOCUS_DOWN));
+    }
+
+    private void useSuggestion(int stringId) {
+        taskInput.setText(getString(stringId));
+        taskInput.requestFocus();
+        taskInput.setSelection(taskInput.length());
+    }
+
+    private void updateConversationInfo() {
+        int messageCount = conversation.size();
+        contextInfoText.setText(getResources().getQuantityString(
+                R.plurals.context_counter, messageCount, messageCount));
     }
 
     private int dp(int value) {
@@ -460,6 +580,14 @@ public final class MainActivity extends AppCompatActivity {
         shareButton.setEnabled(!isBusy);
         exportButton.setEnabled(!isBusy);
         calendarButton.setEnabled(!isBusy);
+        webSearchButton.setEnabled(!isBusy);
+        mapsButton.setEnabled(!isBusy);
+        emailButton.setEnabled(!isBusy);
+        smsButton.setEnabled(!isBusy);
+        newConversationButton.setEnabled(!isBusy);
+        suggestionProjectButton.setEnabled(!isBusy);
+        suggestionMeetingButton.setEnabled(!isBusy);
+        suggestionSummaryButton.setEnabled(!isBusy);
         clearButton.setEnabled(!isBusy);
     }
 

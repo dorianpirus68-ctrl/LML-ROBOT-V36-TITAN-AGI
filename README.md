@@ -44,11 +44,28 @@ Pour un modèle Ollama, l’adresse entrée dans le téléphone doit être l’I
 
 L’application autorise `http://` seulement pour les adresses IPv4 privées du réseau local. Les fournisseurs distants doivent utiliser `https://`, afin de réduire le risque d’envoi accidentel d’une clé API sur une connexion non chiffrée.
 
+## Actions élargies et amélioration du chat
+
+La version enrichie ajoute trois **suggestions de démarrage** — planifier un projet, préparer une réunion et résumer un texte — ainsi qu’un compteur de messages de session et un bouton de nouvelle conversation. Les suggestions préremplissent uniquement le champ de chat : aucun appel au modèle ne commence avant l’appui sur **Envoyer au modèle**.
+
+| Action supplémentaire | Fonctionnement | Validation humaine |
+|---|---|---|
+| **Ouvrir une recherche Web** | Prépare une recherche à partir de la dernière réponse ou du dernier message. | Un aperçu est affiché ; le navigateur s’ouvre seulement après confirmation. |
+| **Ouvrir dans Cartes** | Prépare une recherche de lieu ou de sujet dans une application de cartes. | Un aperçu est affiché ; l’utilisateur modifie ou annule dans l’application de cartes. |
+| **Préparer un e-mail** | Ouvre un brouillon e-mail contenant le texte affiché. | Un aperçu est affiché ; aucun e-mail ne peut être envoyé par LML. |
+| **Préparer un SMS** | Ouvre un brouillon SMS contenant le texte affiché. | Un aperçu est affiché ; aucun SMS ne peut être envoyé par LML. |
+
+Ces fonctions s’ajoutent aux actions de copie, partage, export Markdown et brouillon de calendrier. Elles utilisent une liste blanche d’intentions Android codées dans l’application. Le modèle peut les proposer dans sa réponse, mais il ne peut pas générer ou exécuter un intent Android arbitraire.
+
+## Références GitHub étudiées
+
+Plusieurs projets ont servi à identifier des axes d’amélioration, sans copier leur code ni leurs mécanismes de contrôle. L’exemple de chat Kotlin de [shyam-barange/AI-Assistant](https://github.com/shyam-barange/AI-Assistant) a inspiré les suggestions de conversation, l’historique local et l’accès direct aux actions de texte. Le projet plus ambitieux [XTOM0706/arix-app](https://github.com/XTOM0706/arix-app) illustre l’intérêt d’un catalogue limité d’outils et d’une gestion d’erreurs par action ; ses capacités de contrôle d’applications, d’Accessibilité, de privilèges système et d’automatisation ne sont pas reprises dans LML. Le dépôt [Manus-Handyswap](https://github.com/syedusmanulhassan/Manus-Handyswap) ne contenait pas de code Android exploitable lors de la consultation.
+
 ## Garde-fous
 
 Cette application est un assistant de conversation et de préparation. Elle ne possède aucun service Accessibilité, aucune superposition, aucune simulation de geste, aucune permission de contrôle d’autres applications et aucun automatisme en arrière-plan. Les actions à conséquences importantes — publication, suppression, paiement, transaction, modification d’accès ou envoi irréversible — ne font pas partie de cette version.
 
-Le chat peut proposer une action sous forme de texte, mais le modèle ne reçoit pas une capacité directe d’exécution. Le code Android ne lance que les quatre actions explicitement prévues dans l’interface et aucune instruction non reconnue ne peut devenir une action système.
+Le chat peut proposer une action sous forme de texte, mais le modèle ne reçoit pas une capacité directe d’exécution. Le code Android ne lance que les actions explicitement prévues dans l’interface et aucune instruction non reconnue ne peut devenir une action système.
 
 ## Construire l’APK
 

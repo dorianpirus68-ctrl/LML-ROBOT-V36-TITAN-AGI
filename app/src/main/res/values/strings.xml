@@ -82,4 +82,46 @@ Titre proposé :
     <string name="error_export_failed">Impossible d’écrire le document sélectionné.</string>
     <string name="error_calendar_unavailable">Aucune application Calendrier ne peut ouvrir ce brouillon.</string>
     <string name="connection_success">Connexion réussie.</string>
+
+    <string name="suggestions_label">Suggestions</string>
+    <string name="new_conversation">Nouvelle conversation</string>
+    <string name="suggestion_project_short">Planifier un projet</string>
+    <string name="suggestion_meeting_short">Préparer une réunion</string>
+    <string name="suggestion_summary_short">Résumer un texte</string>
+    <string name="suggestion_project">Aide-moi à structurer un plan de projet court avec les premières étapes, les risques et une prochaine action.</string>
+    <string name="suggestion_meeting">Prépare un ordre du jour de réunion concis, des questions à poser et un brouillon de rappel.</string>
+    <string name="suggestion_summary">Aide-moi à résumer le texte que je vais coller, puis indique les décisions ou actions à vérifier.</string>
+    <plurals name="context_counter">
+        <item quantity="one">%d message dans cette session</item>
+        <item quantity="other">%d messages dans cette session</item>
+    </plurals>
+
+    <string name="action_web_search">Ouvrir une recherche Web</string>
+    <string name="action_maps">Ouvrir dans Cartes</string>
+    <string name="action_email_draft">Préparer un e-mail</string>
+    <string name="action_sms_draft">Préparer un SMS</string>
+    <string name="action_open_search">Ouvrir la recherche</string>
+    <string name="action_open_maps">Ouvrir Cartes</string>
+    <string name="action_open_email">Ouvrir l’e-mail</string>
+    <string name="action_open_sms">Ouvrir le SMS</string>
+    <string name="email_draft_subject">Brouillon préparé avec LML Action Assistant</string>
+
+    <string name="web_search_preview_title">Confirmer la recherche Web</string>
+    <string name="web_search_preview_message">Une recherche Web va être ouverte avec le texte suivant. Vous pourrez modifier ou annuler dans votre navigateur :
+
+%1$s</string>
+    <string name="maps_preview_title">Confirmer la recherche dans Cartes</string>
+    <string name="maps_preview_message">Une application de cartes va s’ouvrir avec cette recherche. Vous pourrez modifier ou annuler dans l’application destinataire :
+
+%1$s</string>
+    <string name="email_preview_title">Confirmer le brouillon d’e-mail</string>
+    <string name="email_preview_message">Une application d’e-mail va s’ouvrir avec un brouillon modifiable. Aucun e-mail ne sera envoyé sans votre action :
+
+%1$s</string>
+    <string name="sms_preview_title">Confirmer le brouillon SMS</string>
+    <string name="sms_preview_message">Une application de messagerie va s’ouvrir avec un brouillon modifiable. Aucun SMS ne sera envoyé sans votre action :
+
+%1$s</string>
+    <string name="status_external_action_opened">Action préparée dans l’application Android choisie. Vérifiez-la avant de poursuivre.</string>
+    <string name="error_action_unavailable">Aucune application compatible ne peut ouvrir cette action.</string>
 </resources>
