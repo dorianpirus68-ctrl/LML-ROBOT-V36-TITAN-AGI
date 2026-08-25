@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/conversationScroll"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -133,62 +134,73 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/task_section"
+                    android:text="@string/chat_section"
                     android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:hint="@string/task_section">
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/taskInput"
-                        android:layout_width="match_parent"
-                        android:layout_height="140dp"
-                        android:gravity="top|start"
-                        android:hint="@string/task_hint"
-                        android:inputType="textMultiLine|textCapSentences" />
-                </com.google.android.material.textfield.TextInputLayout>
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="@string/multi_brain_help"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/chat_help"
                     android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/multiBrainButton"
+                <LinearLayout
+                    android:id="@+id/chatHistory"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:text="@string/multi_brain_action" />
+                    android:background="@drawable/chat_history_background"
+                    android:minHeight="220dp"
+                    android:orientation="vertical"
+                    android:padding="8dp" />
+
+                <TextView
+                    android:id="@+id/statusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center"
+                    android:text="@string/status_ready"
+                    android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+                    android:textColor="@color/brand_secondary" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:hint="@string/chat_input_label">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/taskInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="top|start"
+                        android:hint="@string/chat_input_hint"
+                        android:inputType="textMultiLine|textCapSentences"
+                        android:maxLines="5" />
+                </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/reviewButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/chat_send" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/multiBrainButton"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="@string/review_action" />
+                    android:text="@string/multi_brain_action" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
-
-        <TextView
-            android:id="@+id/statusText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:gravity="center"
-            android:text="@string/status_ready"
-            android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-            android:textColor="@color/brand_secondary" />
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/multiBrainDetails"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="12dp"
             android:visibility="gone"
             app:cardBackgroundColor="@color/brand_surface"
             app:cardCornerRadius="16dp"
@@ -258,29 +270,25 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="12dp"
+            android:layout_marginTop="12dp"
             app:cardBackgroundColor="@color/brand_surface"
             app:cardCornerRadius="16dp"
             app:cardElevation="1dp">
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:padding="16dp">
-
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/response_section"
                     android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
-
                 <TextView
                     android:id="@+id/responseText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="8dp"
                     android:text="@string/response_placeholder"
                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                     android:textIsSelectable="true" />
@@ -291,7 +299,7 @@
             android:id="@+id/localActionsPanel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
+            android:layout_marginTop="12dp"
             android:visibility="gone"
             app:cardBackgroundColor="@color/brand_surface"
             app:cardCornerRadius="16dp"
@@ -308,12 +316,11 @@
                     android:layout_height="wrap_content"
                     android:text="@string/local_actions_title"
                     android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
-
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
-                    android:text="@string/local_actions_help"
+                    android:text="@string/chat_actions_help"
                     android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
 
                 <com.google.android.material.button.MaterialButton
@@ -323,7 +330,6 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
                     android:text="@string/action_copy" />
-
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/shareButton"
                     style="@style/Widget.Material3.Button.OutlinedButton"
@@ -331,14 +337,20 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:text="@string/action_share" />
-
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/confirmReviewButton"
+                    android:id="@+id/exportButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="@string/action_confirm_review" />
-
+                    android:text="@string/action_export_markdown" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/calendarButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/action_calendar_draft" />
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/clearButton"
                     style="@style/Widget.Material3.Button.TextButton"
@@ -352,6 +364,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:layout_marginBottom="12dp"
             android:padding="12dp"
             android:background="@drawable/safety_notice_background"
