@@ -150,11 +150,26 @@
                         android:inputType="textMultiLine|textCapSentences" />
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/multi_brain_help"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/reviewButton"
+                    android:id="@+id/multiBrainButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    android:text="@string/multi_brain_action" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/reviewButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
                     android:text="@string/review_action" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -168,6 +183,77 @@
             android:text="@string/status_ready"
             android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
             android:textColor="@color/brand_secondary" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/multiBrainDetails"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="@color/brand_surface"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="1dp"
+            app:strokeColor="@color/brand_secondary"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/multi_brain_results"
+                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/planner_title"
+                    android:textAppearance="@style/TextAppearance.Material3.TitleSmall" />
+                <TextView
+                    android:id="@+id/plannerText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/role_placeholder"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textIsSelectable="true" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/critic_title"
+                    android:textAppearance="@style/TextAppearance.Material3.TitleSmall" />
+                <TextView
+                    android:id="@+id/criticText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/role_placeholder"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textIsSelectable="true" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/safety_title"
+                    android:textAppearance="@style/TextAppearance.Material3.TitleSmall" />
+                <TextView
+                    android:id="@+id/safetyText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/role_placeholder"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textIsSelectable="true" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -198,6 +284,68 @@
                     android:text="@string/response_placeholder"
                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                     android:textIsSelectable="true" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/localActionsPanel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="@color/brand_surface"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/local_actions_title"
+                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/local_actions_help"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/copyButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/action_copy" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/shareButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/action_share" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/confirmReviewButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/action_confirm_review" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/clearButton"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/action_clear" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

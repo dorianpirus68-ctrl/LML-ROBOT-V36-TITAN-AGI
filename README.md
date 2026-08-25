@@ -1,20 +1,34 @@
 # LML Action Assistant
 
-**LML Action Assistant** est une application Android de conseil IA à **validation humaine**. Elle permet de choisir un fournisseur compatible avec l’API *Chat Completions* d’OpenAI — service distant ou serveur local — puis d’obtenir une proposition d’étapes. L’application ne contrôle pas Snapchat ni aucune autre application, ne demande pas le service Accessibilité, et n’exécute pas des actions à la place de la personne utilisant le téléphone.
+**LML Action Assistant** est une application Android de conseil IA à **validation humaine**. Elle accepte un fournisseur compatible OpenAI — distant ou local — et propose deux modes : une analyse simple ou un collectif **multi-cerveaux**. Dans les deux cas, l’application produit du texte et des vérifications manuelles ; elle ne contrôle aucune autre application et n’exécute pas d’action au nom de l’utilisateur.
 
-> Chaque étape suggérée doit être examinée puis réalisée manuellement par l’utilisateur. L’assistant ne prétend jamais avoir accompli une action.
+> Chaque synthèse doit être lue et décidée par l’utilisateur. L’application ne prétend jamais avoir accompli une action externe.
 
 | Élément | Implémentation |
 |---|---|
-| Fournisseur distant | URL de base compatible OpenAI, modèle et clé API renseignés dans l’application. |
-| Modèle local | Serveur compatible OpenAI exposé sur le réseau local, par exemple Ollama via son endpoint `/v1/chat/completions`. [1] |
-| Secret | La clé API est chiffrée au repos avec une clé Android Keystore, jamais ajoutée à l’APK, aux journaux ou aux sauvegardes Android. |
-| Contrôle humain | L’application génère uniquement du texte ; elle n’utilise ni Accessibilité, ni superposition, ni geste automatisé. |
-| Distribution | Un workflow GitHub Actions fabrique un APK **debug** téléchargeable comme artefact. |
+| Fournisseur distant | URL HTTPS compatible OpenAI, modèle et clé API renseignés dans l’application. |
+| Modèle local | Serveur compatible OpenAI exposé sur le réseau local, par exemple Ollama via `/v1/chat/completions`. [1] |
+| Secret | La clé API est chiffrée au repos avec Android Keystore, jamais ajoutée à l’APK, aux journaux ou aux sauvegardes Android. |
+| Collectif multi-cerveaux | Planificateur, contradicteur et cerveau sécurité analysent séparément la demande ; une synthèse explicable est ensuite proposée. |
+| Actions locales | Copier, partager via le sélecteur Android, confirmer la revue et effacer le résultat. Aucune de ces actions ne contrôle une autre application. |
+| Distribution | Un workflow GitHub Actions fabrique un APK debug téléchargeable comme artefact. |
+
+## Collectif multi-cerveaux
+
+Le collectif fonctionne **à la demande** depuis l’écran de l’application. Les cerveaux sont des rôles d’analyse distincts, pas des processus autonomes : ils n’ont aucun accès aux gestes Android, aux surcouches, aux services Accessibilité ou au contenu d’autres applications.
+
+| Rôle | Fonction | Résultat affiché |
+|---|---|---|
+| **Planificateur** | Formule un chemin court, réversible et vérifiable. | Objectif, prérequis et étapes manuelles. |
+| **Contradicteur** | Recherche les hypothèses fragiles, risques et alternatives. | Contrôles et informations à vérifier. |
+| **Sécurité** | Repère les données sensibles, conséquences et confirmations nécessaires. | Niveau de prudence et garde-fous. |
+| **Synthèse** | Présente les accords, réserves et vérifications manuelles. | Recommandation à lire avant toute décision. |
+
+La première version exécute les rôles séquentiellement avec le profil IA choisi. Cette approche réduit la complexité, respecte le budget du fournisseur choisi et évite toute exécution permanente en arrière-plan. Si le cerveau Sécurité signale un risque élevé, une vérification humaine renforcée est explicitement demandée.
 
 ## Configuration dans l’application
 
-Ouvrez l’APK, complétez les paramètres du fournisseur, puis choisissez **Enregistrer la configuration**. Utilisez **Tester la connexion** avant d’envoyer une demande à analyser. La clé saisie est chiffrée sur le téléphone ; elle reste vide pour les serveurs locaux qui n’exigent pas d’authentification.
+Ouvrez l’APK, complétez les paramètres du fournisseur, puis choisissez **Enregistrer la configuration**. Utilisez **Tester la connexion** avant d’envoyer une demande. La clé saisie est chiffrée sur le téléphone ; elle peut rester vide pour un serveur local ne demandant pas d’authentification.
 
 | Cas d’usage | URL de base | Modèle | Clé API |
 |---|---|---|---|
@@ -26,9 +40,13 @@ Pour Ollama, lancez le serveur sur l’ordinateur hôte, téléchargez au préal
 
 L’application accepte une URL `http://` uniquement lorsque l’hôte est une adresse IPv4 privée RFC 1918 (`10.x.x.x`, `172.16.x.x` à `172.31.x.x` ou `192.168.x.x`). Les fournisseurs distants doivent impérativement être configurés en `https://` ; ce contrôle évite l’envoi accidentel d’une clé vers un hôte HTTP externe.
 
+## Actions disponibles dans l’application
+
+Après une analyse simple ou collective, le panneau **Actions locales** apparaît. **Copier** place uniquement la synthèse dans le presse-papiers. **Partager** ouvre le sélecteur standard Android : l’utilisateur choisit alors lui-même s’il souhaite partager et à quelle application. **Je confirme avoir revu la synthèse** enregistre uniquement cet état dans l’interface et n’exécute aucune opération externe. **Effacer** retire les résultats affichés de l’écran.
+
 ## Sécurité et limites
 
-Cette version est volontairement conçue comme un **assistant de planification**. Elle ne permet pas de simuler une présence humaine, de contourner les règles d’un service, de supprimer des contacts en masse, de lire le contenu d’autres applications ou d’exécuter des interactions à votre insu. Les paramètres d’instruction imposent également l’identification des étapes irréversibles et la demande de confirmation avant leur réalisation manuelle.
+Cette version est volontairement conçue comme un **assistant de planification**. Elle ne permet pas de simuler une présence humaine, de contourner les règles d’un service, de supprimer des contacts en masse, de lire le contenu d’autres applications ou d’exécuter des interactions à l’insu de l’utilisateur. Le collectif ne change pas cette frontière : il améliore la qualité de l’analyse, pas la capacité d’agir automatiquement.
 
 Lors d’un changement d’URL de fournisseur sans nouvelle clé, la clé enregistrée pour l’ancien fournisseur est supprimée afin qu’elle ne soit pas envoyée par erreur à un nouveau serveur. En cas de sauvegarde locale du même fournisseur, la clé conservée reste chiffrée et n’apparaît pas dans l’interface.
 
@@ -39,25 +57,28 @@ Le projet contient un wrapper Gradle et un workflow GitHub Actions. Après un en
 En local, installez Android SDK Platform 35 et Build Tools 35.0.0, puis exécutez :
 
 ```bash
-./gradlew clean assembleDebug
+./gradlew clean assembleDebug lintDebug
 ```
 
-L’APK sera disponible ici :
+L’APK est produit ici :
 
 ```text
 app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Cette version est distribuée en **debug**. Elle ne doit pas être utilisée comme version de production : une version de publication nécessite un identifiant de signature détenu et protégé par son propriétaire.
+Cette version est distribuée en **debug**. Une version de publication nécessite un identifiant de signature détenu et protégé par son propriétaire.
 
 ## Structure du projet
 
 ```text
 app/
   src/main/java/com/lml/actionassistant/
-    MainActivity.java             Interface et flux de validation humaine
+    MainActivity.java             Interface, actions locales et revue humaine
     OpenAiCompatibleClient.java   Client HTTP Chat Completions
     SecureConfigStore.java        Chiffrement de la clé dans Android Keystore
+    AgentRole.java                Rôles du collectif
+    MultiBrainOrchestrator.java   Orchestration supervisée et synthèse
+    MultiBrainResult.java         Résultats par rôle et synthèse
   src/main/res/                   Interface et ressources Android
 .github/workflows/build.yml       Compilation et artefact APK
 ```

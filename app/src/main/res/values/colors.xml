@@ -4,6 +4,5 @@
     <color name="brand_secondary">#0F766E</color>
     <color name="brand_background">#F8FAFC</color>
     <color name="brand_surface">#FFFFFF</color>
-    <color name="brand_on_primary">#FFFFFF</color>
     <color name="brand_text">#0F172A</color>
 </resources>
